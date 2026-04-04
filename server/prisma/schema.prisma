@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           BigInt   @id @default(autoincrement())
+  fullName     String   @map("full_name") @db.VarChar(150)
+  email        String   @unique @db.VarChar(150)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  status       UserStatus @default(active)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  userCompanies UserCompany[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  token     String   @unique @db.VarChar(500)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Company {
+  id              BigInt   @id @default(autoincrement())
+  name            String   @db.VarChar(200)
+  bin             String   @db.VarChar(13)
+  address         String   @db.Text
+  challanPrefix   String   @default("CH") @map("challan_prefix") @db.VarChar(20)
+  nextChallanNo   Int      @default(1) @map("next_challan_no")
+  fiscalYearStart Int      @default(7) @map("fiscal_year_start") @db.TinyInt
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  userCompanies UserCompany[]
+  customers     Customer[]
+  products      Product[]
+
+  @@map("companies")
+}
+
+model UserCompany {
+  id        BigInt      @id @default(autoincrement())
+  userId    BigInt      @map("user_id")
+  companyId BigInt      @map("company_id")
+  role      CompanyRole
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@map("user_companies")
+}
+
+model Customer {
+  id            BigInt   @id @default(autoincrement())
+  companyId     BigInt   @map("company_id")
+  name          String   @db.VarChar(200)
+  binNid        String?  @map("bin_nid") @db.VarChar(50)
+  phone         String?  @db.VarChar(30)
+  address       String?  @db.Text
+  isVdsEntity   Boolean  @default(false) @map("is_vds_entity")
+  vdsEntityType String?  @map("vds_entity_type") @db.VarChar(50)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("customers")
+}
+
+model Product {
+  id                  BigInt   @id @default(autoincrement())
+  companyId           BigInt   @map("company_id")
+  productCode         String?  @map("product_code") @db.VarChar(50)
+  hsCode              String?  @map("hs_code") @db.VarChar(20)
+  serviceCode         String?  @map("service_code") @db.VarChar(20)
+  name                String   @db.VarChar(200)
+  nameBn              String?  @map("name_bn") @db.VarChar(200)
+  type                ProductType
+  vatRate             Decimal  @map("vat_rate") @db.Decimal(5, 2)
+  sdRate              Decimal  @default(0) @map("sd_rate") @db.Decimal(5, 2)
+  specificDutyAmount  Decimal  @default(0) @map("specific_duty_amount") @db.Decimal(14, 2)
+  truncatedBasePct    Decimal  @default(100) @map("truncated_base_pct") @db.Decimal(5, 2)
+  unit                String   @default("pcs") @db.VarChar(50)
+  unitPrice           Decimal  @default(0) @map("unit_price") @db.Decimal(14, 2)
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("products")
+}
+
+enum UserStatus {
+  active
+  inactive
+}
+
+enum CompanyRole {
+  admin
+  operator
+}
+
+enum ProductType {
+  product
+  service
+}
