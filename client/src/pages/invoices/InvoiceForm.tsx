@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, Typography, message, Select, DatePicker, Switch, Table, InputNumber, Space, Divider } from 'antd';
+import { Button, Card, Typography, message, Select, DatePicker, Switch, Table, InputNumber, Space, Divider } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -27,6 +27,7 @@ interface FormItem {
   sdAmount: number;
   vatAmount: number;
   specificDutyLine: number;
+  lineTotal: number;
   grandTotal: number;
   vdsAmount: number;
 }
@@ -68,6 +69,7 @@ export default function InvoiceForm() {
       sdAmount: 0,
       vatAmount: 0,
       specificDutyLine: 0,
+      lineTotal: 0,
       grandTotal: 0,
       vdsAmount: 0,
     }]);

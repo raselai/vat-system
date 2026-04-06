@@ -12,6 +12,8 @@ import ProductList from './pages/products/ProductList';
 import ProductForm from './pages/products/ProductForm';
 import CustomerList from './pages/customers/CustomerList';
 import CustomerForm from './pages/customers/CustomerForm';
+import InvoiceList from './pages/invoices/InvoiceList';
+import InvoiceForm from './pages/invoices/InvoiceForm';
 
 function App() {
   return (
@@ -39,6 +41,9 @@ function App() {
           <Route path="customers" element={<CustomerList />} />
           <Route path="customers/new" element={<CustomerForm />} />
           <Route path="customers/:id/edit" element={<CustomerForm />} />
+          <Route path="invoices" element={<InvoiceList />} />
+          <Route path="invoices/new" element={<InvoiceForm />} />
+          <Route path="invoices/:id" element={<InvoiceList />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
