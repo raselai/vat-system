@@ -1,0 +1,17 @@
+import { Router } from 'express';
+import * as companyController from '../controllers/company.controller';
+import { authenticate } from '../middleware/auth.middleware';
+import { companyScope } from '../middleware/companyScope.middleware';
+
+const router = Router();
+
+// These routes only need auth (no company scope — user sees all their companies)
+router.get('/', authenticate, companyController.list);
+router.post('/', authenticate, companyController.create);
+
+// These routes need auth + company scope
+router.get('/:id', authenticate, companyScope, companyController.get);
+router.put('/:id', authenticate, companyScope, companyController.update);
+router.delete('/:id', authenticate, companyScope, companyController.remove);
+
+export default router;
