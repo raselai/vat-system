@@ -85,3 +85,50 @@ export interface RegisterResponse {
   accessToken: string;
   refreshToken: string;
 }
+
+export interface InvoiceItem {
+  id?: string;
+  productId: string;
+  description: string;
+  descriptionBn?: string;
+  hsCode?: string;
+  qty: number;
+  unitPrice: number;
+  vatRate: number;
+  sdRate: number;
+  specificDutyAmount: number;
+  truncatedBasePct: number;
+  taxableValue: number;
+  sdAmount: number;
+  vatAmount: number;
+  specificDutyLine: number;
+  lineTotal: number;
+  grandTotal: number;
+  vdsRate: number;
+  vdsAmount: number;
+}
+
+export interface Invoice {
+  id: string;
+  companyId: string;
+  customerId: string | null;
+  invoiceType: 'sales' | 'purchase';
+  challanNo: string;
+  challanDate: string;
+  subtotal: number;
+  sdTotal: number;
+  vatTotal: number;
+  specificDutyTotal: number;
+  grandTotal: number;
+  vdsApplicable: boolean;
+  vdsAmount: number;
+  netReceivable: number;
+  status: 'draft' | 'approved' | 'cancelled' | 'locked';
+  createdBy: string;
+  approvedBy: string | null;
+  lockedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: InvoiceItem[];
+  customer: Customer | null;
+}
