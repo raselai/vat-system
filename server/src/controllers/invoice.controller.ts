@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import * as invoiceService from '../services/invoice.service';
 import { createInvoiceSchema, updateInvoiceSchema } from '../validators/invoice.validator';
 import { success, created, error, notFound, forbidden } from '../utils/response';
+import { generateMusak63Pdf } from '../services/pdf.service';
+import prisma from '../utils/prisma';
 
 export async function list(req: Request, res: Response) {
   const filters = {
@@ -76,5 +78,45 @@ export async function lock(req: Request, res: Response) {
     return success(res, invoice);
   } catch (err: any) {
     return error(res, err.message);
+  }
+}
+
+export async function getPdf(req: Request, res: Response) {
+  const invoice = await invoiceService.getInvoiceById(req.companyId!, BigInt(req.params.id as string));
+  if (!invoice) return notFound(res, 'Invoice not found');
+
+  const company = await prisma.company.findUnique({ where: { id: req.companyId! } });
+
+  const pdfData = {
+    companyName: company!.name,
+    companyBin: company!.bin,
+    companyAddress: company!.address,
+    challanNo: invoice.challanNo,
+    challanDate: new Date(invoice.challanDate).toLocaleDateString('en-GB'),
+    invoiceType: invoice.invoiceType,
+    customerName: invoice.customer?.name,
+    customerBin: invoice.customer?.binNid,
+    customerAddress: invoice.customer?.address,
+    items: invoice.items,
+    subtotal: invoice.subtotal,
+    sdTotal: invoice.sdTotal,
+    vatTotal: invoice.vatTotal,
+    specificDutyTotal: invoice.specificDutyTotal,
+    grandTotal: invoice.grandTotal,
+    vdsApplicable: invoice.vdsApplicable,
+    vdsAmount: invoice.vdsAmount,
+    netReceivable: invoice.netReceivable,
+  };
+
+  try {
+    const pdfBuffer = await generateMusak63Pdf(pdfData);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="musak63-${invoice.challanNo}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    res.send(pdfBuffer);
+  } catch (err: any) {
+    return error(res, `PDF generation failed: ${err.message}`, 500);
   }
 }

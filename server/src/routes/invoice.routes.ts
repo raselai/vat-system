@@ -14,5 +14,6 @@ router.put('/:id', invoiceController.update);
 router.post('/:id/approve', invoiceController.approve);
 router.post('/:id/cancel', invoiceController.cancel);
 router.post('/:id/lock', invoiceController.lock);
+router.get('/:id/pdf', invoiceController.getPdf);
 
 export default router;
