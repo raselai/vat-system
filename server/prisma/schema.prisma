@@ -16,8 +16,10 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  userCompanies UserCompany[]
-  refreshTokens RefreshToken[]
+  userCompanies    UserCompany[]
+  refreshTokens    RefreshToken[]
+  createdInvoices  Invoice[] @relation("invoiceCreator")
+  approvedInvoices Invoice[] @relation("invoiceApprover")
 
   @@map("users")
 }
@@ -48,6 +50,7 @@ model Company {
   userCompanies UserCompany[]
   customers     Customer[]
   products      Product[]
+  invoices      Invoice[]
 
   @@map("companies")
 }
@@ -78,7 +81,8 @@ model Customer {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
 
   @@map("customers")
 }
@@ -102,9 +106,84 @@ model Product {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoiceItems InvoiceItem[]
 
   @@map("products")
+}
+
+model Invoice {
+  id                BigInt        @id @default(autoincrement())
+  companyId         BigInt        @map("company_id")
+  customerId        BigInt?       @map("customer_id")
+  invoiceType       InvoiceType   @map("invoice_type")
+  challanNo         String        @map("challan_no") @db.VarChar(50)
+  challanDate       DateTime      @map("challan_date") @db.Date
+  subtotal          Decimal       @db.Decimal(14, 2)
+  sdTotal           Decimal       @default(0) @map("sd_total") @db.Decimal(14, 2)
+  vatTotal          Decimal       @map("vat_total") @db.Decimal(14, 2)
+  specificDutyTotal Decimal       @default(0) @map("specific_duty_total") @db.Decimal(14, 2)
+  grandTotal        Decimal       @map("grand_total") @db.Decimal(14, 2)
+  vdsApplicable     Boolean       @default(false) @map("vds_applicable")
+  vdsAmount         Decimal       @default(0) @map("vds_amount") @db.Decimal(14, 2)
+  netReceivable     Decimal       @map("net_receivable") @db.Decimal(14, 2)
+  status            InvoiceStatus @default(draft)
+  createdBy         BigInt        @map("created_by")
+  approvedBy        BigInt?       @map("approved_by")
+  lockedAt          DateTime?     @map("locked_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  company  Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  creator  User          @relation("invoiceCreator", fields: [createdBy], references: [id])
+  approver User?         @relation("invoiceApprover", fields: [approvedBy], references: [id])
+  items    InvoiceItem[]
+
+  @@unique([companyId, challanNo])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id                 BigInt   @id @default(autoincrement())
+  invoiceId          BigInt   @map("invoice_id")
+  productId          BigInt   @map("product_id")
+  description        String   @db.VarChar(255)
+  descriptionBn      String?  @map("description_bn") @db.VarChar(255)
+  hsCode             String?  @map("hs_code") @db.VarChar(20)
+  qty                Decimal  @db.Decimal(14, 3)
+  unitPrice          Decimal  @map("unit_price") @db.Decimal(14, 2)
+  vatRate            Decimal  @map("vat_rate") @db.Decimal(5, 2)
+  sdRate             Decimal  @default(0) @map("sd_rate") @db.Decimal(5, 2)
+  specificDutyAmount Decimal  @default(0) @map("specific_duty_amount") @db.Decimal(14, 2)
+  truncatedBasePct   Decimal  @default(100) @map("truncated_base_pct") @db.Decimal(5, 2)
+  taxableValue       Decimal  @map("taxable_value") @db.Decimal(14, 2)
+  sdAmount           Decimal  @default(0) @map("sd_amount") @db.Decimal(14, 2)
+  vatAmount          Decimal  @map("vat_amount") @db.Decimal(14, 2)
+  specificDutyLine   Decimal  @default(0) @map("specific_duty_line") @db.Decimal(14, 2)
+  lineTotal          Decimal  @map("line_total") @db.Decimal(14, 2)
+  grandTotal         Decimal  @map("grand_total") @db.Decimal(14, 2)
+  vdsRate            Decimal  @default(0) @map("vds_rate") @db.Decimal(5, 2)
+  vdsAmount          Decimal  @default(0) @map("vds_amount") @db.Decimal(14, 2)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("invoice_items")
+}
+
+enum InvoiceType {
+  sales
+  purchase
+}
+
+enum InvoiceStatus {
+  draft
+  approved
+  cancelled
+  locked
 }
 
 enum UserStatus {
