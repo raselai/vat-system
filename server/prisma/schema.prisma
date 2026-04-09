@@ -24,6 +24,7 @@ model User {
   createdDeposits      TreasuryDeposit[] @relation("treasuryDepositCreator")
   generatedReturns VatReturn[] @relation("vatReturnGenerator")
   reviewedReturns  VatReturn[] @relation("vatReturnReviewer")
+  submittedReturns VatReturn[] @relation("vatReturnSubmitter")
 
   @@map("users")
 }
@@ -307,7 +308,7 @@ model VdsCertificateDeposit {
 model VatReturn {
   id                   BigInt          @id @default(autoincrement())
   companyId            BigInt          @map("company_id")
-  taxMonth             String          @map("tax_month") @db.Char(7)
+  taxMonth             String          @map("tax_month") @db.VarChar(7)
   fiscalYear           String          @map("fiscal_year") @db.VarChar(9)
 
   totalSalesValue      Decimal         @map("total_sales_value") @db.Decimal(14, 2)
@@ -328,7 +329,9 @@ model VatReturn {
   status               VatReturnStatus @default(draft)
   generatedBy          BigInt          @map("generated_by")
   reviewedBy           BigInt?         @map("reviewed_by")
+  reviewedAt           DateTime?       @map("reviewed_at")
   submittedAt          DateTime?       @map("submitted_at")
+  submittedBy          BigInt?         @map("submitted_by")
   lockedAt             DateTime?       @map("locked_at")
   createdAt            DateTime        @default(now()) @map("created_at")
   updatedAt            DateTime        @updatedAt @map("updated_at")
@@ -336,6 +339,7 @@ model VatReturn {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   generator User    @relation("vatReturnGenerator", fields: [generatedBy], references: [id])
   reviewer  User?   @relation("vatReturnReviewer", fields: [reviewedBy], references: [id])
+  submitter User?   @relation("vatReturnSubmitter", fields: [submittedBy], references: [id])
 
   @@unique([companyId, taxMonth])
   @@map("vat_returns")
