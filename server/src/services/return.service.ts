@@ -1,6 +1,7 @@
 import prisma from '../utils/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import type { GenerateReturnInput, UpdateReturnInput } from '../validators/return.validator';
+import type { VatReturn } from '@prisma/client';
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -61,14 +62,14 @@ export async function generateReturn(
   const fiscalYear = getFiscalYear(taxMonth);
 
   const [year, month] = taxMonth.split('-').map(Number);
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0); // last day of month
+  const startDate = new Date(Date.UTC(year, month - 1, 1));
+  const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
   const existing = await prisma.vatReturn.findUnique({
     where: { companyId_taxMonth: { companyId, taxMonth } },
   });
 
-  if (existing && (existing.status === 'submitted' || existing.status === 'locked')) {
+  if (existing && (existing.status === 'reviewed' || existing.status === 'submitted' || existing.status === 'locked')) {
     throw new Error(`Cannot regenerate a ${existing.status} return`);
   }
 
@@ -234,7 +235,7 @@ export async function transitionStatus(
   });
 }
 
-export function serializeReturn(ret: any) {
+export function serializeReturn(ret: VatReturn) {
   return {
     ...ret,
     id: ret.id.toString(),
