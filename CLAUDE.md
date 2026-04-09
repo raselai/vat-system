@@ -39,7 +39,7 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 - **RBAC**: `admin` and `operator` roles per company via `UserCompany` join table. Checked by `rbac.middleware.ts`
 - **Validation**: Zod schemas in `server/src/validators/` — validate before controller logic
 - **API pattern**: All responses use `{ success: boolean, data?: T, error?: string }` via `server/src/utils/response.ts` helpers (`success()`, `error()`, `notFound()`, etc.)
-- **PDF**: Puppeteer with Handlebars templates in `server/src/templates/`. Templates: `musak63.html` (invoice challan), `musak66.html` (VDS certificate), `musak67.html` (sales/purchase register)
+- **PDF**: Puppeteer with Handlebars templates in `server/src/templates/`. Templates: `musak63.html` (invoice challan), `musak66.html` (VDS certificate), `musak67.html` (sales/purchase register), `musak91.html` (monthly return). Each template has a dedicated `generateMusakXXPdf()` export in `pdf.service.ts` following the same pattern: read template → Handlebars compile → Puppeteer render → return `Buffer`
 - **Route prefix**: All routes under `/api/v1/`
 
 ### Client (`client/`)
@@ -67,6 +67,14 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 - `GET /registers/:type/pdf` generates landscape Musak 6.7 PDF
 - Summary feeds directly into Musak 9.1 monthly return
 
+### Monthly Return (`/api/v1/returns`)
+
+- **Generation**: `POST /returns/generate` aggregates all non-cancelled invoices and finalized deductee VDS certificates for a `taxMonth`, computes net payable, saves snapshot as `draft`. Re-generation is allowed only for `draft` returns (blocked for `reviewed`, `submitted`, `locked`).
+- **Status flow**: `draft` → `reviewed` → `submitted` → `locked`. Transitions are admin-only. Manual adjustments (carry-forward, increasing/decreasing) are editable in `draft` only.
+- **Net payable formula**: `outputVat + sdPayable − inputVat − vdsCredit − carryForward + increasingAdj − decreasingAdj`
+- **24-section JSON**: `musak91Json` field stores all sections; sections 11–24 are zero placeholders for future NBR extension
+- **NBR export**: `GET /returns/:id/nbr-export` is a stub that returns raw `musak91Json`
+
 ### Key Data Flow
 
 ```
@@ -83,6 +91,12 @@ VDS flow:
 Register flow:
   Invoices created throughout month → GET /registers/sales?taxMonth=YYYY-MM
   → Aggregated read-only view with summary → PDF export (Musak 6.7)
+
+Monthly return flow:
+  POST /returns/generate?taxMonth=YYYY-MM
+  → Aggregates invoices + VDS credits for the month → saved as draft VatReturn
+  → Admin reviews adjustments → review → submit → lock
+  → PDF export (Musak 9.1) or NBR export stub
 ```
 
 ## Domain Rules (Bangladesh VAT)
@@ -95,6 +109,7 @@ These rules are non-negotiable — they come from NBR (National Board of Revenue
 - **Invoice status flow**: `draft` → `approved` → `locked` (immutable). Also `draft` → `cancelled`. No other transitions
 - **VDS certificate status flow**: `draft` → `finalized`. Also `draft` → `cancelled`. Only drafts are editable
 - **Treasury deposit status flow**: `pending` → `deposited` → `verified`. Only pending deposits are editable
+- **VAT return status flow**: `draft` → `reviewed` → `submitted` → `locked`. No backward transitions. Admin-only beyond `draft`. Re-generation only allowed in `draft`.
 - **VAT calc**: Always use the centralized calculation engine — never inline math. All monetary values `DECIMAL(14,2)`, quantities `DECIMAL(14,3)`, round to 2 decimal places via `round2()`
 - **Multi-company isolation**: All queries MUST be scoped by `company_id`. Never leak data across companies
 - **Audit trail**: `audit_logs` table is append-only. No UPDATE or DELETE operations allowed on it
@@ -111,9 +126,8 @@ The VAT engine handles four modes (see `vatCalc.service.ts`):
 ### Modules Not Yet Implemented
 
 These are defined in the PRD (`PRD.pdf`) but not yet built:
-- Monthly return (Musak 9.1) — aggregation + 24-section form
 - Import/Export service (CSV/Excel)
-- NBR portal export
+- NBR portal export (stub exists at `GET /returns/:id/nbr-export` — format TBD)
 - Audit trail middleware
 - Backup scheduler
 
