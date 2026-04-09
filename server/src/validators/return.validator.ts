@@ -7,9 +7,9 @@ export const generateReturnSchema = z.object({
 });
 
 export const updateReturnSchema = z.object({
-  carryForward: z.number().min(0).optional(),
-  increasingAdjustment: z.number().min(0).optional(),
-  decreasingAdjustment: z.number().min(0).optional(),
+  carryForward: z.number().min(0).max(999_999_999_999.99).optional(),
+  increasingAdjustment: z.number().min(0).max(999_999_999_999.99).optional(),
+  decreasingAdjustment: z.number().min(0).max(999_999_999_999.99).optional(),
   notes: z.string().max(2000).nullable().optional(),
 });
 
