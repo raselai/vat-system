@@ -50,7 +50,7 @@ export async function updateReturn(req: Request, res: Response) {
   }
 }
 
-async function handleTransition(action: 'review' | 'submit' | 'lock') {
+function handleTransition(action: 'review' | 'submit' | 'lock') {
   return async (req: Request, res: Response) => {
     if (req.companyRole !== 'admin') return forbidden(res, 'Only admins can perform this action');
     try {
