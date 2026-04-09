@@ -237,3 +237,33 @@ export interface VdsSummary {
   pendingDeposit: number;
   depositCount: number;
 }
+
+export type VatReturnStatus = 'draft' | 'reviewed' | 'submitted' | 'locked';
+
+export interface VatReturn {
+  id: string;
+  companyId: string;
+  taxMonth: string;
+  fiscalYear: string;
+  totalSalesValue: number;
+  outputVat: number;
+  sdPayable: number;
+  totalPurchaseValue: number;
+  inputVat: number;
+  vdsCredit: number;
+  carryForward: number;
+  increasingAdjustment: number;
+  decreasingAdjustment: number;
+  notes: string | null;
+  netPayable: number;
+  musak91Json: Record<string, number>;
+  status: VatReturnStatus;
+  generatedBy: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  submittedBy: string | null;
+  submittedAt: string | null;
+  lockedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
