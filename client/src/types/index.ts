@@ -132,3 +132,108 @@ export interface Invoice {
   items: InvoiceItem[];
   customer: Customer | null;
 }
+
+export interface VdsCertificate {
+  id: string;
+  companyId: string;
+  certificateNo: string;
+  certificateDate: string;
+  fiscalYear: string;
+  taxMonth: string;
+  role: 'deductor' | 'deductee';
+  invoiceId: string | null;
+  counterpartyName: string;
+  counterpartyBin: string;
+  counterpartyAddress?: string;
+  totalValue: number;
+  vatAmount: number;
+  vdsRate: number;
+  vdsAmount: number;
+  status: 'draft' | 'finalized' | 'cancelled';
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  invoice?: Partial<Invoice>;
+  deposits: VdsCertificateDepositLink[];
+}
+
+export interface VdsCertificateDepositLink {
+  id: string;
+  depositId: string;
+  amount: number;
+  deposit?: TreasuryDeposit;
+}
+
+export interface TreasuryDeposit {
+  id: string;
+  companyId: string;
+  challanNo: string;
+  depositDate: string;
+  fiscalYear: string;
+  taxMonth: string;
+  bankName: string;
+  bankBranch?: string;
+  accountCode?: string;
+  totalAmount: number;
+  status: 'pending' | 'deposited' | 'verified';
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  certificates: TreasuryDepositCertLink[];
+}
+
+export interface TreasuryDepositCertLink {
+  id: string;
+  certificateId: string;
+  amount: number;
+  certificate?: Partial<VdsCertificate>;
+}
+
+export interface RegisterEntry {
+  sl: number;
+  invoiceId: string;
+  challanNo: string;
+  challanDate: string;
+  customerName: string | null;
+  customerBin: string | null;
+  subtotal: number;
+  sdTotal: number;
+  vatTotal: number;
+  specificDutyTotal: number;
+  grandTotal: number;
+  vdsApplicable: boolean;
+  vdsAmount: number;
+  netReceivable: number;
+}
+
+export interface RegisterSummary {
+  totalInvoices: number;
+  subtotal: number;
+  sdTotal: number;
+  vatTotal: number;
+  specificDutyTotal: number;
+  grandTotal: number;
+  vdsAmount: number;
+  netReceivable: number;
+}
+
+export interface RegisterResult {
+  invoiceType: 'sales' | 'purchase';
+  taxMonth: string;
+  fiscalYear: string;
+  entries: RegisterEntry[];
+  summary: RegisterSummary;
+}
+
+export interface VdsSummary {
+  taxMonth: string;
+  totalCertificates: number;
+  deductorCount: number;
+  deducteeCount: number;
+  totalDeducted: number;
+  totalDeposited: number;
+  pendingDeposit: number;
+  depositCount: number;
+}

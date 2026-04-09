@@ -5,6 +5,8 @@ import companyRoutes from './routes/company.routes';
 import productRoutes from './routes/product.routes';
 import customerRoutes from './routes/customer.routes';
 import invoiceRoutes from './routes/invoice.routes';
+import vdsRoutes from './routes/vds.routes';
+import registerRoutes from './routes/register.routes';
 
 const app = express();
 
@@ -22,5 +24,7 @@ app.use('/api/v1/companies', companyRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/invoices', invoiceRoutes);
+app.use('/api/v1/vds', vdsRoutes);
+app.use('/api/v1/registers', registerRoutes);
 
 export default app;

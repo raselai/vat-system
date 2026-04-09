@@ -18,8 +18,10 @@ model User {
 
   userCompanies    UserCompany[]
   refreshTokens    RefreshToken[]
-  createdInvoices  Invoice[] @relation("invoiceCreator")
-  approvedInvoices Invoice[] @relation("invoiceApprover")
+  createdInvoices      Invoice[]        @relation("invoiceCreator")
+  approvedInvoices     Invoice[]        @relation("invoiceApprover")
+  createdCertificates  VdsCertificate[] @relation("vdsCertificateCreator")
+  createdDeposits      TreasuryDeposit[] @relation("treasuryDepositCreator")
 
   @@map("users")
 }
@@ -47,10 +49,12 @@ model Company {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  userCompanies UserCompany[]
-  customers     Customer[]
-  products      Product[]
-  invoices      Invoice[]
+  userCompanies    UserCompany[]
+  customers        Customer[]
+  products         Product[]
+  invoices         Invoice[]
+  vdsCertificates  VdsCertificate[]
+  treasuryDeposits TreasuryDeposit[]
 
   @@map("companies")
 }
@@ -134,11 +138,12 @@ model Invoice {
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
 
-  company  Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  creator  User          @relation("invoiceCreator", fields: [createdBy], references: [id])
-  approver User?         @relation("invoiceApprover", fields: [approvedBy], references: [id])
-  items    InvoiceItem[]
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  creator         User             @relation("invoiceCreator", fields: [createdBy], references: [id])
+  approver        User?            @relation("invoiceApprover", fields: [approvedBy], references: [id])
+  items           InvoiceItem[]
+  vdsCertificates VdsCertificate[]
 
   @@unique([companyId, challanNo])
   @@map("invoices")
@@ -199,4 +204,92 @@ enum CompanyRole {
 enum ProductType {
   product
   service
+}
+
+enum VdsCertificateRole {
+  deductor
+  deductee
+}
+
+enum VdsCertificateStatus {
+  draft
+  finalized
+  cancelled
+}
+
+enum TreasuryDepositStatus {
+  pending
+  deposited
+  verified
+}
+
+model VdsCertificate {
+  id                   BigInt               @id @default(autoincrement())
+  companyId            BigInt               @map("company_id")
+  certificateNo        String               @map("certificate_no") @db.VarChar(50)
+  certificateDate      DateTime             @map("certificate_date") @db.Date
+  fiscalYear           String               @map("fiscal_year") @db.VarChar(9)
+  taxMonth             String               @map("tax_month") @db.VarChar(7)
+  role                 VdsCertificateRole
+  invoiceId            BigInt?              @map("invoice_id")
+  counterpartyName     String               @map("counterparty_name") @db.VarChar(200)
+  counterpartyBin      String               @map("counterparty_bin") @db.VarChar(13)
+  counterpartyAddress  String?              @map("counterparty_address") @db.Text
+  totalValue           Decimal              @map("total_value") @db.Decimal(14, 2)
+  vatAmount            Decimal              @map("vat_amount") @db.Decimal(14, 2)
+  vdsRate              Decimal              @map("vds_rate") @db.Decimal(5, 2)
+  vdsAmount            Decimal              @map("vds_amount") @db.Decimal(14, 2)
+  status               VdsCertificateStatus @default(draft)
+  notes                String?              @db.Text
+  createdBy            BigInt               @map("created_by")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice  Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  creator  User     @relation("vdsCertificateCreator", fields: [createdBy], references: [id])
+
+  deposits VdsCertificateDeposit[]
+
+  @@unique([companyId, certificateNo])
+  @@map("vds_certificates")
+}
+
+model TreasuryDeposit {
+  id           BigInt                @id @default(autoincrement())
+  companyId    BigInt                @map("company_id")
+  challanNo    String                @map("challan_no") @db.VarChar(50)
+  depositDate  DateTime              @map("deposit_date") @db.Date
+  fiscalYear   String                @map("fiscal_year") @db.VarChar(9)
+  taxMonth     String                @map("tax_month") @db.VarChar(7)
+  bankName     String                @map("bank_name") @db.VarChar(200)
+  bankBranch   String?               @map("bank_branch") @db.VarChar(200)
+  accountCode  String?               @map("account_code") @db.VarChar(50)
+  totalAmount  Decimal               @map("total_amount") @db.Decimal(14, 2)
+  status       TreasuryDepositStatus @default(pending)
+  notes        String?               @db.Text
+  createdBy    BigInt                @map("created_by")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator  User    @relation("treasuryDepositCreator", fields: [createdBy], references: [id])
+
+  certificates VdsCertificateDeposit[]
+
+  @@unique([companyId, challanNo])
+  @@map("treasury_deposits")
+}
+
+model VdsCertificateDeposit {
+  id            BigInt  @id @default(autoincrement())
+  certificateId BigInt  @map("certificate_id")
+  depositId     BigInt  @map("deposit_id")
+  amount        Decimal @db.Decimal(14, 2)
+
+  certificate VdsCertificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  deposit     TreasuryDeposit @relation(fields: [depositId], references: [id], onDelete: Cascade)
+
+  @@unique([certificateId, depositId])
+  @@map("vds_certificate_deposits")
 }

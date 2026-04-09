@@ -14,6 +14,12 @@ import CustomerList from './pages/customers/CustomerList';
 import CustomerForm from './pages/customers/CustomerForm';
 import InvoiceList from './pages/invoices/InvoiceList';
 import InvoiceForm from './pages/invoices/InvoiceForm';
+import CertificateList from './pages/vds/CertificateList';
+import CertificateForm from './pages/vds/CertificateForm';
+import DepositList from './pages/vds/DepositList';
+import DepositForm from './pages/vds/DepositForm';
+import SalesRegister from './pages/registers/SalesRegister';
+import PurchaseRegister from './pages/registers/PurchaseRegister';
 
 function App() {
   return (
@@ -44,6 +50,12 @@ function App() {
           <Route path="invoices" element={<InvoiceList />} />
           <Route path="invoices/new" element={<InvoiceForm />} />
           <Route path="invoices/:id" element={<InvoiceList />} />
+          <Route path="vds/certificates" element={<CertificateList />} />
+          <Route path="vds/certificates/new" element={<CertificateForm />} />
+          <Route path="vds/deposits" element={<DepositList />} />
+          <Route path="vds/deposits/new" element={<DepositForm />} />
+          <Route path="registers/sales" element={<SalesRegister />} />
+          <Route path="registers/purchase" element={<PurchaseRegister />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

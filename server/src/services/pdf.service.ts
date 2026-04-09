@@ -54,3 +54,84 @@ export async function generateMusak63Pdf(invoiceData: any): Promise<Buffer> {
     await browser.close();
   }
 }
+
+export async function generateMusak66Pdf(certData: any): Promise<Buffer> {
+  const templatePath = path.join(__dirname, '../templates/musak66.html');
+  const templateSource = fs.readFileSync(templatePath, 'utf-8');
+  const template = Handlebars.compile(templateSource);
+
+  const html = template({
+    certificateNo: certData.certificateNo,
+    certificateDate: new Date(certData.certificateDate).toLocaleDateString('en-GB'),
+    fiscalYear: certData.fiscalYear,
+    taxMonth: certData.taxMonth,
+    role: certData.role,
+    roleLabel: certData.role === 'deductor' ? 'উৎসে কর্তনকারী / Deductor' : 'উৎসে কর্তিত / Deductee',
+    counterpartyName: certData.counterpartyName,
+    counterpartyBin: certData.counterpartyBin,
+    counterpartyAddress: certData.counterpartyAddress || 'N/A',
+    totalValue: certData.totalValue,
+    vatAmount: certData.vatAmount,
+    vdsRate: certData.vdsRate,
+    vdsAmount: certData.vdsAmount,
+    invoiceChallanNo: certData.invoice?.challanNo || 'N/A',
+  });
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
+    });
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
+}
+
+export async function generateMusak67Pdf(registerData: any): Promise<Buffer> {
+  const templatePath = path.join(__dirname, '../templates/musak67.html');
+  const templateSource = fs.readFileSync(templatePath, 'utf-8');
+  const template = Handlebars.compile(templateSource);
+
+  const isSales = registerData.invoiceType === 'sales';
+  const html = template({
+    registerTitle: isSales
+      ? 'বিক্রয় হিসাবপুস্তক / Sales Register'
+      : 'ক্রয় হিসাবপুস্তক / Purchase Register',
+    counterpartyHeader: isSales ? 'ক্রেতার নাম / Buyer' : 'বিক্রেতার নাম / Seller',
+    companyName: registerData.companyName,
+    companyBin: registerData.companyBin,
+    companyAddress: registerData.companyAddress,
+    taxMonth: registerData.taxMonth,
+    fiscalYear: registerData.fiscalYear,
+    entries: registerData.entries,
+    summary: registerData.summary,
+  });
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      landscape: true,
+      printBackground: true,
+      margin: { top: '10mm', right: '8mm', bottom: '10mm', left: '8mm' },
+    });
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
+}
