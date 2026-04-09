@@ -20,6 +20,8 @@ import DepositList from './pages/vds/DepositList';
 import DepositForm from './pages/vds/DepositForm';
 import SalesRegister from './pages/registers/SalesRegister';
 import PurchaseRegister from './pages/registers/PurchaseRegister';
+import ReturnList from './pages/returns/ReturnList';
+import ReturnDetail from './pages/returns/ReturnDetail';
 
 function App() {
   return (
@@ -56,6 +58,8 @@ function App() {
           <Route path="vds/deposits/new" element={<DepositForm />} />
           <Route path="registers/sales" element={<SalesRegister />} />
           <Route path="registers/purchase" element={<PurchaseRegister />} />
+          <Route path="returns" element={<ReturnList />} />
+          <Route path="returns/:id" element={<ReturnDetail />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

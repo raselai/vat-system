@@ -18,6 +18,7 @@ const menuItems: NavItem[] = [
   { key: '/vds/deposits', icon: 'account_balance', label: 'Treasury Deposits' },
   { key: '/registers/sales', icon: 'point_of_sale', label: 'Sales Register' },
   { key: '/registers/purchase', icon: 'shopping_cart', label: 'Purchase Register' },
+  { key: '/returns', icon: 'assignment_turned_in', label: 'Monthly Return' },
   { key: '/products', icon: 'inventory_2', label: 'Products' },
   { key: '/customers', icon: 'group', label: 'Customers' },
   { key: '/settings', icon: 'settings', label: 'Settings' },
