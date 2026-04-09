@@ -135,3 +135,47 @@ export async function generateMusak67Pdf(registerData: any): Promise<Buffer> {
     await browser.close();
   }
 }
+
+export async function generateMusak91Pdf(returnData: any): Promise<Buffer> {
+  const templatePath = path.join(__dirname, '../templates/musak91.html');
+  const templateSource = fs.readFileSync(templatePath, 'utf-8');
+  const template = Handlebars.compile(templateSource);
+
+  const html = template({
+    companyName: returnData.companyName,
+    companyBin: returnData.companyBin,
+    companyAddress: returnData.companyAddress,
+    taxMonth: returnData.taxMonth,
+    fiscalYear: returnData.fiscalYear,
+    status: returnData.status,
+    totalSalesValue: returnData.totalSalesValue,
+    outputVat: returnData.outputVat,
+    sdPayable: returnData.sdPayable,
+    totalPurchaseValue: returnData.totalPurchaseValue,
+    inputVat: returnData.inputVat,
+    vdsCredit: returnData.vdsCredit,
+    carryForward: returnData.carryForward,
+    increasingAdjustment: returnData.increasingAdjustment,
+    decreasingAdjustment: returnData.decreasingAdjustment,
+    netPayable: returnData.netPayable,
+    notes: returnData.notes,
+  });
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
+    });
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
+}
