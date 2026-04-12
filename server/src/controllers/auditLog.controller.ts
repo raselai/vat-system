@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { success, error } from '../utils/response';
 
-const VALID_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+const VALID_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export async function list(req: Request, res: Response) {
   const {
