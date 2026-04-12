@@ -2,10 +2,11 @@ import { Router } from 'express';
 import * as vdsController from '../controllers/vds.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { companyScope } from '../middleware/companyScope.middleware';
+import { auditLog } from '../middleware/auditLog.middleware';
 
 const router = Router();
 
-router.use(authenticate, companyScope);
+router.use(authenticate, companyScope, auditLog);
 
 // Certificates
 router.get('/certificates', vdsController.listCertificates);
