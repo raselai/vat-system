@@ -267,3 +267,20 @@ export interface VatReturn {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface AuditLog {
+  id: string;
+  companyId: string | null;
+  userId: string | null;
+  method: string;
+  path: string;
+  statusCode: number;
+  createdAt: string;
+}
+
+export interface AuditLogListResult {
+  items: AuditLog[];
+  total: number;
+  page: number;
+  limit: number;
+}
