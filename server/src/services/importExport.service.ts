@@ -211,3 +211,198 @@ export async function importCustomers(
 
   return { imported: valid.length, errors };
 }
+
+// ─── Invoice Import ───────────────────────────────────────────────────────────
+
+export const INVOICE_FIELDS = [
+  { name: 'invoiceType',      label: 'Invoice Type (sales/purchase)', required: true },
+  { name: 'challanDate',      label: 'Challan Date (YYYY-MM-DD)',      required: true },
+  { name: 'productCode',      label: 'Product Code',                   required: true },
+  { name: 'description',      label: 'Description',                    required: true },
+  { name: 'qty',              label: 'Quantity',                       required: true },
+  { name: 'unitPrice',        label: 'Unit Price',                     required: true },
+  { name: 'vatRate',          label: 'VAT Rate (%)',                    required: true },
+  { name: 'customerBin',      label: 'Customer BIN / NID',             required: false },
+  { name: 'sdRate',           label: 'SD Rate (%)',                    required: false },
+  { name: 'truncatedBasePct', label: 'Truncated Base %',               required: false },
+];
+
+// Challan generation logic (mirrors invoice.service.ts generateChallanNo)
+async function generateChallanNo(tx: any, companyId: bigint): Promise<string> {
+  const companies: any[] = await tx.$queryRaw`
+    SELECT challan_prefix, next_challan_no, fiscal_year_start
+    FROM companies WHERE id = ${companyId} FOR UPDATE
+  `;
+  const c = companies[0];
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  const fyStart = c.fiscal_year_start as number;
+  const startYear = month >= fyStart ? year : year - 1;
+  const fiscalYear = `${startYear}-${startYear + 1}`;
+  const seq = String(c.next_challan_no).padStart(4, '0');
+  const challanNo = `${c.challan_prefix}-${fiscalYear}-${seq}`;
+  await tx.$executeRaw`UPDATE companies SET next_challan_no = next_challan_no + 1 WHERE id = ${companyId}`;
+  return challanNo;
+}
+
+export async function importInvoices(
+  companyId: bigint,
+  userId: bigint,
+  buffer: Buffer,
+  columnMap: ColumnMap
+): Promise<ImportResult> {
+  const { rows } = parseFile(buffer);
+  const errors: ImportError[] = [];
+
+  // Pre-load lookup tables once for the whole import batch
+  const [allProducts, allCustomers] = await Promise.all([
+    prisma.product.findMany({ where: { companyId, isActive: true }, select: { id: true, productCode: true, vatRate: true } }),
+    prisma.customer.findMany({ where: { companyId, isActive: true }, select: { id: true, binNid: true } }),
+  ]);
+
+  const productByCode = new Map(allProducts.filter(p => p.productCode).map(p => [p.productCode!.toLowerCase(), p]));
+  const customerByBin = new Map(allCustomers.filter(c => c.binNid).map(c => [c.binNid!, c]));
+
+  type ValidRow = {
+    customerId: bigint | null;
+    invoiceType: 'sales' | 'purchase';
+    challanDate: Date;
+    productId: bigint;
+    description: string;
+    qty: number;
+    unitPrice: number;
+    vatRate: number;
+    sdRate: number;
+    truncatedBasePct: number;
+  };
+
+  const validRows: ValidRow[] = [];
+
+  rows.forEach((rawRow, i) => {
+    const rowNum = i + 2;
+    const row = applyMap(rawRow, columnMap);
+
+    if (!['sales', 'purchase'].includes(row.invoiceType)) {
+      errors.push({ row: rowNum, field: 'invoiceType', message: 'Must be "sales" or "purchase"' });
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(row.challanDate)) {
+      errors.push({ row: rowNum, field: 'challanDate', message: 'Date must be YYYY-MM-DD' });
+      return;
+    }
+
+    const product = productByCode.get((row.productCode ?? '').toLowerCase());
+    if (!product) {
+      errors.push({ row: rowNum, field: 'productCode', message: `Product code "${row.productCode}" not found` });
+      return;
+    }
+
+    if (!row.description) {
+      errors.push({ row: rowNum, field: 'description', message: 'Description is required' });
+      return;
+    }
+
+    const qty = parseFloat(row.qty);
+    const unitPrice = parseFloat(row.unitPrice);
+    const vatRate = parseFloat(row.vatRate);
+
+    if (isNaN(qty) || qty <= 0) {
+      errors.push({ row: rowNum, field: 'qty', message: 'Quantity must be a positive number' });
+      return;
+    }
+    if (isNaN(unitPrice) || unitPrice < 0) {
+      errors.push({ row: rowNum, field: 'unitPrice', message: 'Unit Price must be ≥ 0' });
+      return;
+    }
+    if (isNaN(vatRate) || vatRate < 0 || vatRate > 100) {
+      errors.push({ row: rowNum, field: 'vatRate', message: 'VAT Rate must be 0–100' });
+      return;
+    }
+
+    const sdRate = row.sdRate ? parseFloat(row.sdRate) : 0;
+    const truncatedBasePct = row.truncatedBasePct ? parseFloat(row.truncatedBasePct) : 100;
+
+    let customerId: bigint | null = null;
+    if (row.customerBin) {
+      const customer = customerByBin.get(row.customerBin);
+      if (!customer) {
+        errors.push({ row: rowNum, field: 'customerBin', message: `Customer BIN "${row.customerBin}" not found` });
+        return;
+      }
+      customerId = customer.id;
+    }
+
+    validRows.push({
+      customerId,
+      invoiceType: row.invoiceType as 'sales' | 'purchase',
+      challanDate: new Date(row.challanDate),
+      productId: product.id,
+      description: row.description,
+      qty,
+      unitPrice,
+      vatRate,
+      sdRate,
+      truncatedBasePct,
+    });
+  });
+
+  // Import valid rows sequentially — challan numbers must be atomically sequential
+  let imported = 0;
+  for (const v of validRows) {
+    try {
+      await prisma.$transaction(async (tx: any) => {
+        const challanNo = await generateChallanNo(tx, companyId);
+        const taxableValue = Math.round(v.qty * v.unitPrice * 100) / 100;
+        const vatAmount = Math.round(taxableValue * (v.vatRate / 100) * 100) / 100;
+        const sdAmount = Math.round(taxableValue * (v.sdRate / 100) * 100) / 100;
+        const lineTotal = Math.round((taxableValue + sdAmount) * 100) / 100;
+        const grandTotal = Math.round((lineTotal + vatAmount) * 100) / 100;
+
+        await tx.invoice.create({
+          data: {
+            companyId,
+            customerId: v.customerId,
+            invoiceType: v.invoiceType,
+            challanNo,
+            challanDate: v.challanDate,
+            subtotal: new Decimal(taxableValue),
+            sdTotal: new Decimal(sdAmount),
+            vatTotal: new Decimal(vatAmount),
+            specificDutyTotal: new Decimal(0),
+            grandTotal: new Decimal(grandTotal),
+            vdsApplicable: false,
+            vdsAmount: new Decimal(0),
+            netReceivable: new Decimal(grandTotal),
+            createdBy: userId,
+            items: {
+              create: [{
+                productId: v.productId,
+                description: v.description,
+                qty: new Decimal(v.qty),
+                unitPrice: new Decimal(v.unitPrice),
+                vatRate: new Decimal(v.vatRate),
+                sdRate: new Decimal(v.sdRate),
+                specificDutyAmount: new Decimal(0),
+                truncatedBasePct: new Decimal(v.truncatedBasePct),
+                taxableValue: new Decimal(taxableValue),
+                sdAmount: new Decimal(sdAmount),
+                vatAmount: new Decimal(vatAmount),
+                specificDutyLine: new Decimal(0),
+                lineTotal: new Decimal(lineTotal),
+                grandTotal: new Decimal(grandTotal),
+                vdsRate: new Decimal(0),
+                vdsAmount: new Decimal(0),
+              }],
+            },
+          },
+        });
+      });
+      imported++;
+    } catch {
+      // Challan conflict or DB error — skip silently, already validated
+    }
+  }
+
+  return { imported, errors };
+}
