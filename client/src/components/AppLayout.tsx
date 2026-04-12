@@ -19,6 +19,7 @@ const menuItems: NavItem[] = [
   { key: '/registers/sales', icon: 'point_of_sale', label: 'Sales Register' },
   { key: '/registers/purchase', icon: 'shopping_cart', label: 'Purchase Register' },
   { key: '/returns', icon: 'assignment_turned_in', label: 'Monthly Return' },
+  { key: '/audit-logs', icon: 'manage_history', label: 'Audit Log' },
   { key: '/products', icon: 'inventory_2', label: 'Products' },
   { key: '/customers', icon: 'group', label: 'Customers' },
   { key: '/settings', icon: 'settings', label: 'Settings' },

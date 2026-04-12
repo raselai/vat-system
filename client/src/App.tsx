@@ -22,6 +22,7 @@ import SalesRegister from './pages/registers/SalesRegister';
 import PurchaseRegister from './pages/registers/PurchaseRegister';
 import ReturnList from './pages/returns/ReturnList';
 import ReturnDetail from './pages/returns/ReturnDetail';
+import AuditLogPage from './pages/audit/AuditLogPage';
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
           <Route path="registers/purchase" element={<PurchaseRegister />} />
           <Route path="returns" element={<ReturnList />} />
           <Route path="returns/:id" element={<ReturnDetail />} />
+          <Route path="audit-logs" element={<AuditLogPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
