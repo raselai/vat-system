@@ -3,6 +3,14 @@ import prisma from '../utils/prisma';
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+function parseUserId(req: Request): bigint | null {
+  try {
+    return req.user?.userId ? BigInt(req.user.userId) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function auditLog(req: Request, res: Response, next: NextFunction): void {
   if (!MUTATING_METHODS.has(req.method)) {
     next();
@@ -12,10 +20,10 @@ export function auditLog(req: Request, res: Response, next: NextFunction): void 
   res.on('finish', () => {
     prisma.auditLog.create({
       data: {
-        userId:     req.user?.userId ? BigInt(req.user.userId) : null,
+        userId:     parseUserId(req),
         companyId:  req.companyId ?? null,
         method:     req.method,
-        path:       req.path,
+        path:       req.originalUrl.split('?')[0],
         statusCode: res.statusCode,
       },
     }).catch((err: unknown) => {
