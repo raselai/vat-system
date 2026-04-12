@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { success, error } from '../utils/response';
+
+const VALID_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
 export async function list(req: Request, res: Response) {
   const {
@@ -12,26 +15,34 @@ export async function list(req: Request, res: Response) {
     limit = '50',
   } = req.query as Record<string, string | undefined>;
 
-  const pageNum  = Math.max(1, parseInt(page  ?? '1',  10));
-  const limitNum = Math.min(100, Math.max(1, parseInt(limit ?? '50', 10)));
+  const pageNum  = Math.max(1, parseInt(page  ?? '1',  10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit ?? '50', 10) || 50));
   const skip     = (pageNum - 1) * limitNum;
 
-  const where: Record<string, unknown> = {
-    companyId: req.companyId!,
-  };
+  // Validate userId before BigInt conversion
+  if (userId && !/^\d+$/.test(userId)) {
+    return error(res, 'userId must be a numeric ID');
+  }
 
-  if (userId) {
-    where.userId = BigInt(userId);
+  // Validate dates before use
+  if (from && isNaN(new Date(from).getTime())) {
+    return error(res, 'Invalid from date');
   }
-  if (method) {
-    where.method = method.toUpperCase();
+  if (to && isNaN(new Date(to).getTime())) {
+    return error(res, 'Invalid to date');
   }
-  if (from || to) {
-    where.createdAt = {
-      ...(from ? { gte: new Date(from) } : {}),
-      ...(to   ? { lte: new Date(to)   } : {}),
-    };
-  }
+
+  const where: Prisma.AuditLogWhereInput = {
+    companyId: req.companyId!,
+    ...(userId ? { userId: BigInt(userId) } : {}),
+    ...(method && VALID_METHODS.has(method.toUpperCase()) ? { method: method.toUpperCase() } : {}),
+    ...(from || to ? {
+      createdAt: {
+        ...(from ? { gte: new Date(from) } : {}),
+        ...(to   ? { lte: new Date(to)   } : {}),
+      },
+    } : {}),
+  };
 
   try {
     const [items, total] = await Promise.all([
@@ -59,6 +70,7 @@ export async function list(req: Request, res: Response) {
       limit: limitNum,
     });
   } catch (err: unknown) {
-    return error(res, (err as Error).message);
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    return error(res, msg, 500);
   }
 }
