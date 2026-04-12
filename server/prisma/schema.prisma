@@ -344,3 +344,17 @@ model VatReturn {
   @@unique([companyId, taxMonth])
   @@map("vat_returns")
 }
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  companyId  BigInt?  @map("company_id")
+  userId     BigInt?  @map("user_id")
+  method     String   @db.VarChar(10)
+  path       String   @db.VarChar(500)
+  statusCode Int      @map("status_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([companyId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
