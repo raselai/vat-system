@@ -75,9 +75,11 @@ export function suggestColumnMap(headers: string[], fields: { name: string; labe
   const map: ColumnMap = {};
   for (const field of fields) {
     const lower = field.label.toLowerCase();
-    const match = headers.find(h => h.toLowerCase() === lower)
-      || headers.find(h => h.toLowerCase().includes(field.name.toLowerCase()))
-      || headers.find(h => field.name.toLowerCase().includes(h.toLowerCase()));
+    const nameLower = field.name.toLowerCase();
+    const match =
+      headers.find(h => h.toLowerCase() === lower) ||              // exact label match
+      headers.find(h => h.toLowerCase() === nameLower) ||          // exact field-name match
+      headers.find(h => h.toLowerCase().includes(nameLower));      // header contains field name
     if (match) map[field.name] = match;
   }
   return map;
@@ -126,6 +128,11 @@ export async function importProducts(
     }
     if (isNaN(truncatedBasePct) || truncatedBasePct < 0 || truncatedBasePct > 100) {
       errors.push({ row: rowNum, field: 'truncatedBasePct', message: 'Truncated Base % must be 0–100' });
+      return;
+    }
+
+    if (isNaN(unitPrice) || unitPrice < 0) {
+      errors.push({ row: rowNum, field: 'unitPrice', message: 'Unit Price must be a number ≥ 0' });
       return;
     }
 
