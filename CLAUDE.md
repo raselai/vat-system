@@ -34,7 +34,7 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 
 - **Runtime**: Node.js + Express + TypeScript, compiled via `tsx` (dev) / `tsc` (prod)
 - **ORM**: Prisma with MySQL 8 (`utf8mb4` charset). Schema at `server/prisma/schema.prisma`
-- **Auth**: JWT access + refresh tokens. Middleware chain: `authenticate` → `companyScope` → route handler
+- **Auth**: JWT access + refresh tokens. Middleware chain: `authenticate` → `companyScope` → `auditLog` → route handler
 - **Company scoping**: Every data query is scoped by `companyId` from the `x-company-id` request header. The `companyScope` middleware validates user membership and sets `req.companyId`
 - **RBAC**: `admin` and `operator` roles per company via `UserCompany` join table. Checked by `rbac.middleware.ts`
 - **Validation**: Zod schemas in `server/src/validators/` — validate before controller logic
@@ -75,6 +75,15 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 - **24-section JSON**: `musak91Json` field stores all sections; sections 11–24 are zero placeholders for future NBR extension
 - **NBR export**: `GET /returns/:id/nbr-export` is a stub that returns raw `musak91Json`
 
+### Audit Trail (`/api/v1/audit-logs`)
+
+- **Middleware**: `server/src/middleware/auditLog.middleware.ts` — fires `res.on('finish')` after every `POST`/`PUT`/`PATCH`/`DELETE` response. Fire-and-forget Prisma write; failures log to stderr and never affect the request
+- **Storage**: `audit_logs` table — append-only, no FK constraints (survives user/company deletion). Fields: `id`, `company_id`, `user_id`, `method`, `path`, `status_code`, `created_at`
+- **Path capture**: Uses `req.originalUrl.split('?')[0]` — full path including mount prefix, query strings stripped
+- **API**: `GET /audit-logs?userId=&method=&from=&to=&page=&limit=` — company-scoped, paginated (default 50, max 100). Both admin and operator roles can read
+- **Auth routes**: `auditLog` is wired per-route on auth routes (no companyScope); `userId` and `companyId` are null for unauthenticated events (e.g. failed logins)
+- **Prisma note**: No `updatedAt` field — intentionally omitted; adding it would violate the append-only rule
+
 ### Key Data Flow
 
 ```
@@ -97,6 +106,11 @@ Monthly return flow:
   → Aggregates invoices + VDS credits for the month → saved as draft VatReturn
   → Admin reviews adjustments → review → submit → lock
   → PDF export (Musak 9.1) or NBR export stub
+
+Audit trail flow:
+  Any POST/PUT/PATCH/DELETE → auditLog middleware fires res.on('finish')
+  → Appends row to audit_logs (company_id, user_id, method, path, status_code)
+  → GET /api/v1/audit-logs returns paginated, filtered view
 ```
 
 ## Domain Rules (Bangladesh VAT)
@@ -128,7 +142,6 @@ The VAT engine handles four modes (see `vatCalc.service.ts`):
 These are defined in the PRD (`PRD.pdf`) but not yet built:
 - Import/Export service (CSV/Excel)
 - NBR portal export (stub exists at `GET /returns/:id/nbr-export` — format TBD)
-- Audit trail middleware
 - Backup scheduler
 
 ## Coding Conventions
