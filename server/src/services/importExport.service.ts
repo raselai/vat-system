@@ -421,3 +421,108 @@ export async function importInvoices(
 
   return { imported, errors };
 }
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+
+type ExportFormat = 'csv' | 'xlsx';
+
+function buildBuffer(rows: Record<string, unknown>[], format: ExportFormat): Buffer {
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+  const bookType = format === 'csv' ? 'csv' : 'xlsx';
+  return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType }));
+}
+
+export async function exportProducts(companyId: bigint, format: ExportFormat): Promise<Buffer> {
+  const products = await prisma.product.findMany({
+    where: { companyId },
+    orderBy: { name: 'asc' },
+  });
+
+  const rows = products.map(p => ({
+    productCode: p.productCode ?? '',
+    name: p.name,
+    nameBn: p.nameBn ?? '',
+    type: p.type,
+    hsCode: p.hsCode ?? '',
+    serviceCode: p.serviceCode ?? '',
+    vatRate: Number(p.vatRate),
+    sdRate: Number(p.sdRate),
+    specificDutyAmount: Number(p.specificDutyAmount),
+    truncatedBasePct: Number(p.truncatedBasePct),
+    unit: p.unit,
+    unitPrice: Number(p.unitPrice),
+    isActive: p.isActive ? 'yes' : 'no',
+  }));
+
+  return buildBuffer(rows, format);
+}
+
+export async function exportCustomers(companyId: bigint, format: ExportFormat): Promise<Buffer> {
+  const customers = await prisma.customer.findMany({
+    where: { companyId },
+    orderBy: { name: 'asc' },
+  });
+
+  const rows = customers.map(c => ({
+    name: c.name,
+    binNid: c.binNid ?? '',
+    phone: c.phone ?? '',
+    address: c.address ?? '',
+    isVdsEntity: c.isVdsEntity ? 'yes' : 'no',
+    vdsEntityType: c.vdsEntityType ?? '',
+    isActive: c.isActive ? 'yes' : 'no',
+  }));
+
+  return buildBuffer(rows, format);
+}
+
+export async function exportInvoices(
+  companyId: bigint,
+  format: ExportFormat,
+  filters?: { invoiceType?: string; from?: string; to?: string }
+): Promise<Buffer> {
+  const where: any = { companyId };
+  if (filters?.invoiceType) where.invoiceType = filters.invoiceType;
+  if (filters?.from || filters?.to) {
+    where.challanDate = {};
+    if (filters.from) where.challanDate.gte = new Date(filters.from);
+    if (filters.to) where.challanDate.lte = new Date(filters.to);
+  }
+
+  const invoices = await prisma.invoice.findMany({
+    where,
+    include: { items: { include: { product: true } }, customer: true },
+    orderBy: { challanDate: 'asc' },
+  });
+
+  const rows: Record<string, unknown>[] = [];
+  for (const inv of invoices) {
+    for (const item of inv.items) {
+      rows.push({
+        challanNo: inv.challanNo,
+        challanDate: inv.challanDate.toISOString().slice(0, 10),
+        invoiceType: inv.invoiceType,
+        status: inv.status,
+        customerName: inv.customer?.name ?? '',
+        customerBin: inv.customer?.binNid ?? '',
+        productCode: item.product?.productCode ?? '',
+        description: item.description,
+        qty: Number(item.qty),
+        unitPrice: Number(item.unitPrice),
+        vatRate: Number(item.vatRate),
+        sdRate: Number(item.sdRate),
+        taxableValue: Number(item.taxableValue),
+        sdAmount: Number(item.sdAmount),
+        vatAmount: Number(item.vatAmount),
+        lineTotal: Number(item.lineTotal),
+        grandTotal: Number(item.grandTotal),
+        vdsRate: Number(item.vdsRate),
+        vdsAmount: Number(item.vdsAmount),
+      });
+    }
+  }
+
+  return buildBuffer(rows, format);
+}
