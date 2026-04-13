@@ -23,6 +23,7 @@ import PurchaseRegister from './pages/registers/PurchaseRegister';
 import ReturnList from './pages/returns/ReturnList';
 import ReturnDetail from './pages/returns/ReturnDetail';
 import AuditLogPage from './pages/audit/AuditLogPage';
+import ImportExportPage from './pages/importExport/ImportExportPage';
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
           <Route path="returns" element={<ReturnList />} />
           <Route path="returns/:id" element={<ReturnDetail />} />
           <Route path="audit-logs" element={<AuditLogPage />} />
+          <Route path="import-export" element={<ImportExportPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
