@@ -1,7 +1,7 @@
-import puppeteer from 'puppeteer';
 import Handlebars from 'handlebars';
 import fs from 'fs';
 import path from 'path';
+import type { Browser } from 'puppeteer';
 
 Handlebars.registerHelper('formatNumber', (value: number) => {
   if (value === null || value === undefined) return '0.00';
@@ -10,9 +10,82 @@ Handlebars.registerHelper('formatNumber', (value: number) => {
 
 Handlebars.registerHelper('add', (a: number, b: number) => a + b);
 
+function readTemplate(fileName: string): string {
+  const candidates = [
+    path.join(__dirname, '../templates', fileName),
+    path.join(process.cwd(), 'src', 'templates', fileName),
+    path.join(process.cwd(), 'server', 'src', 'templates', fileName),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return fs.readFileSync(candidate, 'utf-8');
+    }
+  }
+
+  throw new Error(`Template not found: ${fileName}`);
+}
+
+// Singleton browser — launched once, reused across all PDF requests.
+// On Vercel each invocation is ephemeral so we still spawn per-request there.
+let _browser: Browser | null = null;
+
+async function getBrowser(): Promise<Browser> {
+  // Vercel: no persistent process — always launch fresh
+  if (process.env.VERCEL) {
+    const chromium = require('@sparticuz/chromium');
+    const puppeteerCore = require('puppeteer-core');
+    return puppeteerCore.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+  }
+
+  // Reuse existing browser if still connected
+  if (_browser) {
+    try {
+      // ping — throws if the process has died
+      await _browser.version();
+      return _browser;
+    } catch {
+      _browser = null;
+    }
+  }
+
+  const puppeteer = await import('puppeteer');
+  _browser = await puppeteer.default.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  // Clean up reference if Chromium exits unexpectedly
+  _browser.on('disconnected', () => { _browser = null; });
+
+  return _browser;
+}
+
+async function renderPdf(
+  html: string,
+  pageOptions: Parameters<import('puppeteer').Page['pdf']>[0],
+  isVercel: boolean,
+): Promise<Buffer> {
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf(pageOptions);
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await page.close();
+    // On Vercel the browser is single-use — close it to free memory
+    if (isVercel) await browser.close();
+  }
+}
+
 export async function generateMusak63Pdf(invoiceData: any): Promise<Buffer> {
-  const templatePath = path.join(__dirname, '../templates/musak63.html');
-  const templateSource = fs.readFileSync(templatePath, 'utf-8');
+  const templateSource = readTemplate('musak63.html');
   const template = Handlebars.compile(templateSource);
 
   const html = template({
@@ -36,28 +109,15 @@ export async function generateMusak63Pdf(invoiceData: any): Promise<Buffer> {
     netReceivable: invoiceData.netReceivable,
   });
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
-    });
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await browser.close();
-  }
+  return renderPdf(html, {
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
+  }, !!process.env.VERCEL);
 }
 
 export async function generateMusak66Pdf(certData: any): Promise<Buffer> {
-  const templatePath = path.join(__dirname, '../templates/musak66.html');
-  const templateSource = fs.readFileSync(templatePath, 'utf-8');
+  const templateSource = readTemplate('musak66.html');
   const template = Handlebars.compile(templateSource);
 
   const html = template({
@@ -77,28 +137,15 @@ export async function generateMusak66Pdf(certData: any): Promise<Buffer> {
     invoiceChallanNo: certData.invoice?.challanNo || 'N/A',
   });
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
-    });
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await browser.close();
-  }
+  return renderPdf(html, {
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
+  }, !!process.env.VERCEL);
 }
 
 export async function generateMusak67Pdf(registerData: any): Promise<Buffer> {
-  const templatePath = path.join(__dirname, '../templates/musak67.html');
-  const templateSource = fs.readFileSync(templatePath, 'utf-8');
+  const templateSource = readTemplate('musak67.html');
   const template = Handlebars.compile(templateSource);
 
   const isSales = registerData.invoiceType === 'sales';
@@ -116,29 +163,16 @@ export async function generateMusak67Pdf(registerData: any): Promise<Buffer> {
     summary: registerData.summary,
   });
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      landscape: true,
-      printBackground: true,
-      margin: { top: '10mm', right: '8mm', bottom: '10mm', left: '8mm' },
-    });
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await browser.close();
-  }
+  return renderPdf(html, {
+    format: 'A4',
+    landscape: true,
+    printBackground: true,
+    margin: { top: '10mm', right: '8mm', bottom: '10mm', left: '8mm' },
+  }, !!process.env.VERCEL);
 }
 
 export async function generateMusak91Pdf(returnData: any): Promise<Buffer> {
-  const templatePath = path.join(__dirname, '../templates/musak91.html');
-  const templateSource = fs.readFileSync(templatePath, 'utf-8');
+  const templateSource = readTemplate('musak91.html');
   const template = Handlebars.compile(templateSource);
 
   const html = template({
@@ -161,21 +195,9 @@ export async function generateMusak91Pdf(returnData: any): Promise<Buffer> {
     notes: returnData.notes,
   });
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
-    });
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await browser.close();
-  }
+  return renderPdf(html, {
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
+  }, !!process.env.VERCEL);
 }

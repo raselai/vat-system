@@ -39,7 +39,7 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 - **RBAC**: `admin` and `operator` roles per company via `UserCompany` join table. Checked by `rbac.middleware.ts`
 - **Validation**: Zod schemas in `server/src/validators/` — validate before controller logic
 - **API pattern**: All responses use `{ success: boolean, data?: T, error?: string }` via `server/src/utils/response.ts` helpers (`success()`, `error()`, `notFound()`, etc.)
-- **PDF**: Puppeteer with Handlebars templates in `server/src/templates/`. Templates: `musak63.html` (invoice challan), `musak66.html` (VDS certificate), `musak67.html` (sales/purchase register), `musak91.html` (monthly return). Each template has a dedicated `generateMusakXXPdf()` export in `pdf.service.ts` following the same pattern: read template → Handlebars compile → Puppeteer render → return `Buffer`
+- **PDF**: Puppeteer with Handlebars templates in `server/src/templates/`. Templates: `musak63.html` (invoice challan), `musak66.html` (VDS certificate), `musak67.html` (sales/purchase register), `musak91.html` (monthly return). Each template has a dedicated `generateMusakXXPdf()` export in `pdf.service.ts` following the same pattern: read template → Handlebars compile → Puppeteer render → return `Buffer`. On Vercel (`process.env.VERCEL`), `launchBrowser()` switches to `@sparticuz/chromium` + `puppeteer-core`; locally it uses standard `puppeteer`
 - **Route prefix**: All routes under `/api/v1/`
 
 ### Client (`client/`)
@@ -137,10 +137,16 @@ The VAT engine handles four modes (see `vatCalc.service.ts`):
 3. **Specific duty**: `duty = qty × perUnitAmount` — flat amount added to total alongside VAT
 4. **VDS**: `VDS = vatAmount × vdsRate%` — deducted from seller's receivable
 
+### Import/Export (`/api/v1/import`, `/api/v1/export`)
+
+- **Preview**: `POST /import/preview` — parses uploaded file (CSV/XLSX/XLS, max 10 MB) and returns parsed rows without committing, for user confirmation
+- **Import**: `POST /import/products`, `POST /import/customers`, `POST /import/invoices` — validated bulk upsert; uses `multer` with `memoryStorage`
+- **Export**: `GET /export/products`, `GET /export/customers`, `GET /export/invoices` — returns downloadable file (CSV or Excel depending on `format` query param)
+- File validation: MIME type + extension check; accepted types are `text/csv`, `application/vnd.ms-excel`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+
 ### Modules Not Yet Implemented
 
 These are defined in the PRD (`PRD.pdf`) but not yet built:
-- Import/Export service (CSV/Excel)
 - NBR portal export (stub exists at `GET /returns/:id/nbr-export` — format TBD)
 - Backup scheduler
 
