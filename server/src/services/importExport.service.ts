@@ -2,6 +2,8 @@ import * as XLSX from 'xlsx';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
+import { calculateLineItem, calculateInvoiceTotals } from './vatCalc.service';
+import { getFiscalYear } from '../utils/validators';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -214,6 +216,20 @@ export async function importCustomers(
 
 // ─── Invoice Import ───────────────────────────────────────────────────────────
 
+interface ValidInvoiceRow {
+  rowNum: number;
+  customerId: bigint | null;
+  invoiceType: 'sales' | 'purchase';
+  challanDate: Date;
+  productId: bigint;
+  description: string;
+  qty: number;
+  unitPrice: number;
+  vatRate: number;
+  sdRate: number;
+  truncatedBasePct: number;
+}
+
 export const INVOICE_FIELDS = [
   { name: 'invoiceType',      label: 'Invoice Type (sales/purchase)', required: true },
   { name: 'challanDate',      label: 'Challan Date (YYYY-MM-DD)',      required: true },
@@ -234,12 +250,7 @@ async function generateChallanNo(tx: any, companyId: bigint): Promise<string> {
     FROM companies WHERE id = ${companyId} FOR UPDATE
   `;
   const c = companies[0];
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
-  const fyStart = c.fiscal_year_start as number;
-  const startYear = month >= fyStart ? year : year - 1;
-  const fiscalYear = `${startYear}-${startYear + 1}`;
+  const fiscalYear = getFiscalYear(new Date(), c.fiscal_year_start);
   const seq = String(c.next_challan_no).padStart(4, '0');
   const challanNo = `${c.challan_prefix}-${fiscalYear}-${seq}`;
   await tx.$executeRaw`UPDATE companies SET next_challan_no = next_challan_no + 1 WHERE id = ${companyId}`;
@@ -264,20 +275,7 @@ export async function importInvoices(
   const productByCode = new Map(allProducts.filter(p => p.productCode).map(p => [p.productCode!.toLowerCase(), p]));
   const customerByBin = new Map(allCustomers.filter(c => c.binNid).map(c => [c.binNid!, c]));
 
-  type ValidRow = {
-    customerId: bigint | null;
-    invoiceType: 'sales' | 'purchase';
-    challanDate: Date;
-    productId: bigint;
-    description: string;
-    qty: number;
-    unitPrice: number;
-    vatRate: number;
-    sdRate: number;
-    truncatedBasePct: number;
-  };
-
-  const validRows: ValidRow[] = [];
+  const validRows: ValidInvoiceRow[] = [];
 
   rows.forEach((rawRow, i) => {
     const rowNum = i + 2;
@@ -344,6 +342,7 @@ export async function importInvoices(
     }
 
     validRows.push({
+      rowNum,
       customerId,
       invoiceType: row.invoiceType as 'sales' | 'purchase',
       challanDate: new Date(row.challanDate),
@@ -363,11 +362,17 @@ export async function importInvoices(
     try {
       await prisma.$transaction(async (tx: any) => {
         const challanNo = await generateChallanNo(tx, companyId);
-        const taxableValue = Math.round(v.qty * v.unitPrice * 100) / 100;
-        const vatAmount = Math.round(taxableValue * (v.vatRate / 100) * 100) / 100;
-        const sdAmount = Math.round(taxableValue * (v.sdRate / 100) * 100) / 100;
-        const lineTotal = Math.round((taxableValue + sdAmount) * 100) / 100;
-        const grandTotal = Math.round((lineTotal + vatAmount) * 100) / 100;
+
+        const calc = calculateLineItem({
+          qty: v.qty,
+          unitPrice: v.unitPrice,
+          vatRate: v.vatRate,
+          sdRate: v.sdRate,
+          specificDutyAmount: 0,
+          truncatedBasePct: v.truncatedBasePct,
+          vdsRate: 0,
+        });
+        const totals = calculateInvoiceTotals([calc]);
 
         await tx.invoice.create({
           data: {
@@ -376,14 +381,14 @@ export async function importInvoices(
             invoiceType: v.invoiceType,
             challanNo,
             challanDate: v.challanDate,
-            subtotal: new Decimal(taxableValue),
-            sdTotal: new Decimal(sdAmount),
-            vatTotal: new Decimal(vatAmount),
-            specificDutyTotal: new Decimal(0),
-            grandTotal: new Decimal(grandTotal),
+            subtotal: new Decimal(totals.subtotal),
+            sdTotal: new Decimal(totals.sdTotal),
+            vatTotal: new Decimal(totals.vatTotal),
+            specificDutyTotal: new Decimal(totals.specificDutyTotal),
+            grandTotal: new Decimal(totals.grandTotal),
             vdsApplicable: false,
             vdsAmount: new Decimal(0),
-            netReceivable: new Decimal(grandTotal),
+            netReceivable: new Decimal(totals.grandTotal),
             createdBy: userId,
             items: {
               create: [{
@@ -395,12 +400,12 @@ export async function importInvoices(
                 sdRate: new Decimal(v.sdRate),
                 specificDutyAmount: new Decimal(0),
                 truncatedBasePct: new Decimal(v.truncatedBasePct),
-                taxableValue: new Decimal(taxableValue),
-                sdAmount: new Decimal(sdAmount),
-                vatAmount: new Decimal(vatAmount),
-                specificDutyLine: new Decimal(0),
-                lineTotal: new Decimal(lineTotal),
-                grandTotal: new Decimal(grandTotal),
+                taxableValue: new Decimal(calc.taxableValue),
+                sdAmount: new Decimal(calc.sdAmount),
+                vatAmount: new Decimal(calc.vatAmount),
+                specificDutyLine: new Decimal(calc.specificDutyLine),
+                lineTotal: new Decimal(calc.lineTotal),
+                grandTotal: new Decimal(calc.grandTotal),
                 vdsRate: new Decimal(0),
                 vdsAmount: new Decimal(0),
               }],
@@ -410,7 +415,7 @@ export async function importInvoices(
       });
       imported++;
     } catch {
-      // Challan conflict or DB error — skip silently, already validated
+      errors.push({ row: v.rowNum, field: 'db', message: 'Row skipped due to a database error' });
     }
   }
 
