@@ -507,6 +507,7 @@ export async function exportInvoices(
         status: inv.status,
         customerName: inv.customer?.name ?? '',
         customerBin: inv.customer?.binNid ?? '',
+        netReceivable: Number(inv.netReceivable),
         productCode: item.product?.productCode ?? '',
         description: item.description,
         qty: Number(item.qty),
@@ -517,7 +518,7 @@ export async function exportInvoices(
         sdAmount: Number(item.sdAmount),
         vatAmount: Number(item.vatAmount),
         lineTotal: Number(item.lineTotal),
-        grandTotal: Number(item.grandTotal),
+        itemGrandTotal: Number(item.grandTotal),
         vdsRate: Number(item.vdsRate),
         vdsAmount: Number(item.vdsAmount),
       });
