@@ -3,7 +3,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { calculateLineItem, calculateInvoiceTotals } from './vatCalc.service';
-import { getFiscalYear } from '../utils/validators';
+import { generateChallanNo } from '../utils/challan';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -156,7 +156,12 @@ export async function importProducts(
   });
 
   if (valid.length > 0) {
-    await prisma.product.createMany({ data: valid });
+    try {
+      await prisma.product.createMany({ data: valid });
+    } catch (err: any) {
+      errors.push({ row: -1, field: 'db', message: `Database error: ${err.message}` });
+      return { imported: 0, errors };
+    }
   }
 
   return { imported: valid.length, errors };
@@ -208,7 +213,12 @@ export async function importCustomers(
   });
 
   if (valid.length > 0) {
-    await prisma.customer.createMany({ data: valid });
+    try {
+      await prisma.customer.createMany({ data: valid });
+    } catch (err: any) {
+      errors.push({ row: -1, field: 'db', message: `Database error: ${err.message}` });
+      return { imported: 0, errors };
+    }
   }
 
   return { imported: valid.length, errors };
@@ -242,20 +252,6 @@ export const INVOICE_FIELDS = [
   { name: 'sdRate',           label: 'SD Rate (%)',                    required: false },
   { name: 'truncatedBasePct', label: 'Truncated Base %',               required: false },
 ];
-
-// Challan generation logic (mirrors invoice.service.ts generateChallanNo)
-async function generateChallanNo(tx: any, companyId: bigint): Promise<string> {
-  const companies: any[] = await tx.$queryRaw`
-    SELECT challan_prefix, next_challan_no, fiscal_year_start
-    FROM companies WHERE id = ${companyId} FOR UPDATE
-  `;
-  const c = companies[0];
-  const fiscalYear = getFiscalYear(new Date(), c.fiscal_year_start);
-  const seq = String(c.next_challan_no).padStart(4, '0');
-  const challanNo = `${c.challan_prefix}-${fiscalYear}-${seq}`;
-  await tx.$executeRaw`UPDATE companies SET next_challan_no = next_challan_no + 1 WHERE id = ${companyId}`;
-  return challanNo;
-}
 
 export async function importInvoices(
   companyId: bigint,
@@ -361,7 +357,7 @@ export async function importInvoices(
   for (const v of validRows) {
     try {
       await prisma.$transaction(async (tx: any) => {
-        const challanNo = await generateChallanNo(tx, companyId);
+        const challanNo = await generateChallanNo(tx, companyId, v.challanDate);
 
         const calc = calculateLineItem({
           qty: v.qty,
@@ -478,6 +474,9 @@ export async function exportCustomers(companyId: bigint, format: ExportFormat): 
   return buildBuffer(rows, format);
 }
 
+// Exports all invoices for the company (including cancelled) for data completeness.
+// Use the invoiceType and date range filters to narrow the result set.
+// Callers requiring only active/approved invoices should filter by status themselves.
 export async function exportInvoices(
   companyId: bigint,
   format: ExportFormat,

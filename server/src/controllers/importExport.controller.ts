@@ -16,7 +16,13 @@ export async function preview(req: Request, res: Response) {
   const fields = fieldDefs[entity];
   if (!fields) return error(res, 'entity must be one of: products, customers, invoices');
 
-  const parsed = svc.parseFile(req.file.buffer);
+  let parsed;
+  try {
+    parsed = svc.parseFile(req.file.buffer);
+  } catch {
+    return error(res, 'Failed to parse file. Ensure it is a valid CSV or Excel file.');
+  }
+
   const suggestedMap = svc.suggestColumnMap(parsed.headers, fields);
 
   return success(res, {

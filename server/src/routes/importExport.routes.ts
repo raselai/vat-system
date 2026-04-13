@@ -6,7 +6,24 @@ import { companyScope } from '../middleware/companyScope.middleware';
 import { auditLog } from '../middleware/auditLog.middleware';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/octet-stream', // some browsers send this for .xlsx
+    ];
+    const validExt = /\.(csv|xlsx|xls)$/i.test(file.originalname);
+    if (allowed.includes(file.mimetype) || validExt) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV and Excel files are allowed (.csv, .xlsx, .xls)'));
+    }
+  },
+});
 
 router.use(authenticate, companyScope);
 
