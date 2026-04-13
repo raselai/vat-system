@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans Bengali', sans-serif; font-size: 10px; padding: 20px; color: #333; }
+    .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+    .header h1 { font-size: 15px; font-weight: 700; }
+    .header h2 { font-size: 12px; font-weight: 600; margin-top: 4px; }
+    .header p { font-size: 9px; color: #666; }
+    .meta { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 10px; }
+    .meta .info-row { margin-bottom: 2px; }
+    .meta .info-label { font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { border: 1px solid #333; padding: 3px 5px; text-align: left; font-size: 9px; }
+    th { background: #f0f0f0; font-weight: 700; text-align: center; white-space: nowrap; }
+    td.number { text-align: right; }
+    td.center { text-align: center; }
+    .summary-row td { font-weight: 700; background: #f5f5f5; }
+    .footer { margin-top: 40px; display: flex; justify-content: space-between; }
+    .signature { text-align: center; border-top: 1px solid #333; padding-top: 4px; min-width: 150px; font-size: 9px; }
+    .musak-no { font-size: 9px; color: #999; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="musak-no">মূসক-৬.৭ / Musak-6.7</div>
+  <div class="header">
+    <h1>{{registerTitle}}</h1>
+    <h2>{{companyName}}</h2>
+    <p>BIN: {{companyBin}} | {{companyAddress}}</p>
+  </div>
+
+  <div class="meta">
+    <div>
+      <div class="info-row"><span class="info-label">কর মাস / Tax Month:</span> {{taxMonth}}</div>
+      <div class="info-row"><span class="info-label">অর্থ বৎসর / Fiscal Year:</span> {{fiscalYear}}</div>
+    </div>
+    <div>
+      <div class="info-row"><span class="info-label">মোট চালান / Total Invoices:</span> {{summary.totalInvoices}}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ক্রম<br>SL</th>
+        <th>চালান নম্বর<br>Challan No</th>
+        <th>তারিখ<br>Date</th>
+        <th>{{counterpartyHeader}}<br>Name</th>
+        <th>BIN</th>
+        <th>করযোগ্য মূল্য<br>Taxable Value</th>
+        <th>SD</th>
+        <th>VAT</th>
+        <th>সুনির্দিষ্ট শুল্ক<br>Specific Duty</th>
+        <th>সর্বমোট<br>Grand Total</th>
+        <th>VDS</th>
+        <th>নীট প্রাপ্য<br>Net Receivable</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each entries}}
+      <tr>
+        <td class="center">{{this.sl}}</td>
+        <td>{{this.challanNo}}</td>
+        <td>{{this.challanDate}}</td>
+        <td>{{this.customerName}}</td>
+        <td>{{this.customerBin}}</td>
+        <td class="number">{{formatNumber this.subtotal}}</td>
+        <td class="number">{{formatNumber this.sdTotal}}</td>
+        <td class="number">{{formatNumber this.vatTotal}}</td>
+        <td class="number">{{formatNumber this.specificDutyTotal}}</td>
+        <td class="number">{{formatNumber this.grandTotal}}</td>
+        <td class="number">{{formatNumber this.vdsAmount}}</td>
+        <td class="number">{{formatNumber this.netReceivable}}</td>
+      </tr>
+      {{/each}}
+      {{#unless entries.length}}
+      <tr>
+        <td colspan="12" style="text-align:center; padding: 12px; color: #999;">এই মাসে কোনো চালান নেই / No invoices for this month</td>
+      </tr>
+      {{/unless}}
+    </tbody>
+    <tfoot>
+      <tr class="summary-row">
+        <td colspan="5" style="text-align:right">মোট / Total:</td>
+        <td class="number">{{formatNumber summary.subtotal}}</td>
+        <td class="number">{{formatNumber summary.sdTotal}}</td>
+        <td class="number">{{formatNumber summary.vatTotal}}</td>
+        <td class="number">{{formatNumber summary.specificDutyTotal}}</td>
+        <td class="number">{{formatNumber summary.grandTotal}}</td>
+        <td class="number">{{formatNumber summary.vdsAmount}}</td>
+        <td class="number">{{formatNumber summary.netReceivable}}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="footer">
+    <div class="signature">প্রস্তুতকারীর স্বাক্ষর<br>Prepared By</div>
+    <div class="signature">অনুমোদনকারীর স্বাক্ষর<br>Approved By</div>
+  </div>
+</body>
+</html>

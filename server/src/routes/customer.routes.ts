@@ -2,10 +2,11 @@ import { Router } from 'express';
 import * as customerController from '../controllers/customer.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { companyScope } from '../middleware/companyScope.middleware';
+import { auditLog } from '../middleware/auditLog.middleware';
 
 const router = Router();
 
-router.use(authenticate, companyScope);
+router.use(authenticate, companyScope, auditLog);
 
 router.get('/', customerController.list);
 router.post('/', customerController.create);

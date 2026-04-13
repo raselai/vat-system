@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans Bengali', sans-serif; font-size: 11px; padding: 20px; color: #333; }
+    .musak-no { font-size: 10px; color: #999; margin-bottom: 4px; }
+    .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+    .header h1 { font-size: 16px; font-weight: 700; }
+    .header h2 { font-size: 13px; font-weight: 600; margin-top: 4px; }
+    .section { margin-bottom: 16px; }
+    .section-title { font-weight: 700; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #999; padding-bottom: 4px; }
+    .info-row { display: flex; margin-bottom: 4px; }
+    .info-label { font-weight: 600; min-width: 260px; }
+    .info-value { flex: 1; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { border: 1px solid #333; padding: 6px 8px; font-size: 10px; }
+    th { background: #f0f0f0; font-weight: 700; text-align: left; }
+    td.number { text-align: right; }
+    .net-payable { font-weight: 700; font-size: 13px; background: #e8f5e9; }
+    .footer { margin-top: 40px; display: flex; justify-content: space-between; }
+    .signature { text-align: center; border-top: 1px solid #333; padding-top: 4px; min-width: 180px; }
+    .notice { margin-top: 20px; padding: 8px; border: 1px dashed #999; font-size: 9px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="musak-no">মূসক-৯.১ / Musak-9.1</div>
+  <div class="header">
+    <h1>মাসিক ভ্যাট রিটার্ন / Monthly VAT Return</h1>
+    <h2>Value Added Tax and Supplementary Duty Act, 2012</h2>
+  </div>
+
+  <div class="section">
+    <div class="section-title">প্রতিষ্ঠানের তথ্য / Company Information</div>
+    <div class="info-row"><span class="info-label">প্রতিষ্ঠানের নাম / Company Name:</span><span class="info-value">{{companyName}}</span></div>
+    <div class="info-row"><span class="info-label">BIN:</span><span class="info-value">{{companyBin}}</span></div>
+    <div class="info-row"><span class="info-label">ঠিকানা / Address:</span><span class="info-value">{{companyAddress}}</span></div>
+    <div class="info-row"><span class="info-label">কর মাস / Tax Month:</span><span class="info-value">{{taxMonth}}</span></div>
+    <div class="info-row"><span class="info-label">অর্থ বৎসর / Fiscal Year:</span><span class="info-value">{{fiscalYear}}</span></div>
+    <div class="info-row"><span class="info-label">অবস্থা / Status:</span><span class="info-value">{{status}}</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">বিক্রয় তথ্য / Output Tax (Sales)</div>
+    <table>
+      <thead>
+        <tr><th>বিবরণ / Description</th><th style="text-align:right">পরিমাণ (টাকা) / Amount (BDT)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>মোট বিক্রয় মূল্য / Total Sales Value</td><td class="number">{{formatNumber totalSalesValue}}</td></tr>
+        <tr><td>আউটপুট ভ্যাট / Output VAT</td><td class="number">{{formatNumber outputVat}}</td></tr>
+        <tr><td>সম্পূরক শুল্ক / Supplementary Duty (SD)</td><td class="number">{{formatNumber sdPayable}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">ক্রয় তথ্য / Input Tax Credit (Purchases)</div>
+    <table>
+      <thead>
+        <tr><th>বিবরণ / Description</th><th style="text-align:right">পরিমাণ (টাকা) / Amount (BDT)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>মোট ক্রয় মূল্য / Total Purchase Value</td><td class="number">{{formatNumber totalPurchaseValue}}</td></tr>
+        <tr><td>ইনপুট ট্যাক্স ক্রেডিট / Input VAT Credit</td><td class="number">{{formatNumber inputVat}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">সমন্বয় / Adjustments</div>
+    <table>
+      <thead>
+        <tr><th>বিবরণ / Description</th><th style="text-align:right">পরিমাণ (টাকা) / Amount (BDT)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>উৎসে কর্তিত ক্রেডিট / VDS Credit</td><td class="number">{{formatNumber vdsCredit}}</td></tr>
+        <tr><td>পূর্ববর্তী মাসের ক্রেডিট / Carry Forward</td><td class="number">{{formatNumber carryForward}}</td></tr>
+        <tr><td>বর্ধিত সমন্বয় / Increasing Adjustment</td><td class="number">{{formatNumber increasingAdjustment}}</td></tr>
+        <tr><td>হ্রাসমান সমন্বয় / Decreasing Adjustment</td><td class="number">{{formatNumber decreasingAdjustment}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <table>
+      <tbody>
+        <tr class="net-payable">
+          <td>প্রদেয় কর (নিট) / Net VAT Payable</td>
+          <td class="number">{{formatNumber netPayable}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {{#if notes}}
+  <div class="notice">
+    <strong>মন্তব্য / Notes:</strong> {{notes}}
+  </div>
+  {{/if}}
+
+  <div class="notice">
+    আমি ঘোষণা করিতেছি যে এই রিটার্নে প্রদত্ত তথ্যাদি সত্য ও সঠিক।<br>
+    I declare that the information provided in this return is true and correct.
+  </div>
+
+  <div class="footer">
+    <div class="signature">করদাতার স্বাক্ষর ও সীল<br>Taxpayer's Signature & Seal</div>
+    <div class="signature">তারিখ / Date</div>
+  </div>
+</body>
+</html>

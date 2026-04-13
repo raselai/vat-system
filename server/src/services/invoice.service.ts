@@ -2,7 +2,7 @@ import prisma from '../utils/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { CreateInvoiceInput, UpdateInvoiceInput } from '../validators/invoice.validator';
 import { calculateLineItem, calculateInvoiceTotals } from './vatCalc.service';
-import { getFiscalYear } from '../utils/validators';
+import { generateChallanNo } from '../utils/challan';
 
 function serializeInvoice(invoice: any) {
   return {
@@ -51,23 +51,6 @@ function serializeItem(item: any) {
   };
 }
 
-async function generateChallanNo(tx: any, companyId: bigint): Promise<string> {
-  const companies = await tx.$queryRaw`
-    SELECT challan_prefix, next_challan_no, fiscal_year_start
-    FROM companies
-    WHERE id = ${companyId}
-    FOR UPDATE
-  `;
-  const company = (companies as any[])[0];
-  const fiscalYear = getFiscalYear(new Date(), company.fiscal_year_start);
-  const seqNo = String(company.next_challan_no).padStart(4, '0');
-  const challanNo = `${company.challan_prefix}-${fiscalYear}-${seqNo}`;
-  await tx.$executeRaw`
-    UPDATE companies SET next_challan_no = next_challan_no + 1 WHERE id = ${companyId}
-  `;
-  return challanNo;
-}
-
 export async function listInvoices(
   companyId: bigint,
   filters?: { status?: string; invoiceType?: string; page?: number; limit?: number }
@@ -92,7 +75,7 @@ export async function listInvoices(
 
 export async function createInvoice(companyId: bigint, userId: bigint, input: CreateInvoiceInput) {
   return prisma.$transaction(async (tx: any) => {
-    const challanNo = await generateChallanNo(tx, companyId);
+    const challanNo = await generateChallanNo(tx, companyId, new Date(input.challanDate));
     const calculatedItems = input.items.map(item => {
       const calc = calculateLineItem({
         qty: item.qty,

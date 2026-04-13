@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans Bengali', sans-serif; font-size: 11px; padding: 20px; color: #333; }
+    .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+    .header h1 { font-size: 16px; font-weight: 700; }
+    .header h2 { font-size: 13px; font-weight: 600; margin-top: 4px; }
+    .header p { font-size: 10px; color: #666; }
+    .section { margin-bottom: 16px; }
+    .section-title { font-weight: 700; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #999; padding-bottom: 4px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .info-row { display: flex; margin-bottom: 4px; }
+    .info-label { font-weight: 600; min-width: 180px; }
+    .info-value { flex: 1; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { border: 1px solid #333; padding: 6px 8px; text-align: left; font-size: 10px; }
+    th { background: #f0f0f0; font-weight: 700; }
+    td.number { text-align: right; }
+    .totals { margin-top: 8px; }
+    .totals .row { display: flex; justify-content: flex-end; gap: 20px; margin-bottom: 4px; }
+    .totals .label { font-weight: 600; min-width: 250px; text-align: right; }
+    .totals .value { min-width: 120px; text-align: right; }
+    .highlight { font-weight: 700; font-size: 12px; border-top: 1px solid #333; padding-top: 4px; }
+    .footer { margin-top: 50px; display: flex; justify-content: space-between; }
+    .signature { text-align: center; border-top: 1px solid #333; padding-top: 4px; min-width: 180px; }
+    .musak-no { font-size: 10px; color: #999; margin-bottom: 4px; }
+    .notice { margin-top: 20px; padding: 8px; border: 1px dashed #999; font-size: 9px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="musak-no">মূসক-৬.৬ / Musak-6.6</div>
+  <div class="header">
+    <h1>উৎসে কর কর্তন সনদপত্র / VDS Certificate</h1>
+    <h2>VAT Deducted at Source Certificate</h2>
+  </div>
+
+  <div class="section">
+    <div class="section-title">সনদপত্রের তথ্য / Certificate Information</div>
+    <div class="info-grid">
+      <div>
+        <div class="info-row"><span class="info-label">সনদপত্র নম্বর / Certificate No:</span><span class="info-value">{{certificateNo}}</span></div>
+        <div class="info-row"><span class="info-label">তারিখ / Date:</span><span class="info-value">{{certificateDate}}</span></div>
+        <div class="info-row"><span class="info-label">ভূমিকা / Role:</span><span class="info-value">{{roleLabel}}</span></div>
+      </div>
+      <div>
+        <div class="info-row"><span class="info-label">অর্থ বৎসর / Fiscal Year:</span><span class="info-value">{{fiscalYear}}</span></div>
+        <div class="info-row"><span class="info-label">কর মাস / Tax Month:</span><span class="info-value">{{taxMonth}}</span></div>
+        <div class="info-row"><span class="info-label">চালান রেফ / Invoice Ref:</span><span class="info-value">{{invoiceChallanNo}}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">প্রতিপক্ষের তথ্য / Counterparty Information</div>
+    <div class="info-row"><span class="info-label">নাম / Name:</span><span class="info-value">{{counterpartyName}}</span></div>
+    <div class="info-row"><span class="info-label">BIN:</span><span class="info-value">{{counterpartyBin}}</span></div>
+    <div class="info-row"><span class="info-label">ঠিকানা / Address:</span><span class="info-value">{{counterpartyAddress}}</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">কর্তনের বিবরণ / Deduction Details</div>
+    <table>
+      <thead>
+        <tr>
+          <th>বিবরণ / Description</th>
+          <th>পরিমাণ / Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>মোট মূল্য / Total Value (incl. VAT)</td>
+          <td class="number">{{formatNumber totalValue}}</td>
+        </tr>
+        <tr>
+          <td>মূল্য সংযোজন কর / VAT Amount</td>
+          <td class="number">{{formatNumber vatAmount}}</td>
+        </tr>
+        <tr>
+          <td>উৎসে কর্তনের হার / VDS Rate</td>
+          <td class="number">{{vdsRate}}%</td>
+        </tr>
+        <tr style="font-weight: 700; background: #f9f9f9;">
+          <td>উৎসে কর্তিত পরিমাণ / VDS Amount</td>
+          <td class="number">{{formatNumber vdsAmount}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="notice">
+    এই সনদপত্রটি মূল্য সংযোজন কর ও সম্পূরক শুল্ক আইন, ২০১২ এর ধারা অনুযায়ী উৎসে মূল্য সংযোজন কর কর্তনের প্রমাণপত্র হিসাবে জারি করা হইল।<br>
+    This certificate is issued as proof of VAT deduction at source under the Value Added Tax and Supplementary Duty Act, 2012.
+  </div>
+
+  <div class="footer">
+    <div class="signature">কর্তনকারীর স্বাক্ষর ও সীল<br>Deductor's Signature & Seal</div>
+    <div class="signature">প্রাপকের স্বাক্ষর<br>Recipient's Signature</div>
+  </div>
+</body>
+</html>

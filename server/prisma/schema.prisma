@@ -18,8 +18,13 @@ model User {
 
   userCompanies    UserCompany[]
   refreshTokens    RefreshToken[]
-  createdInvoices  Invoice[] @relation("invoiceCreator")
-  approvedInvoices Invoice[] @relation("invoiceApprover")
+  createdInvoices      Invoice[]        @relation("invoiceCreator")
+  approvedInvoices     Invoice[]        @relation("invoiceApprover")
+  createdCertificates  VdsCertificate[] @relation("vdsCertificateCreator")
+  createdDeposits      TreasuryDeposit[] @relation("treasuryDepositCreator")
+  generatedReturns VatReturn[] @relation("vatReturnGenerator")
+  reviewedReturns  VatReturn[] @relation("vatReturnReviewer")
+  submittedReturns VatReturn[] @relation("vatReturnSubmitter")
 
   @@map("users")
 }
@@ -47,10 +52,13 @@ model Company {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  userCompanies UserCompany[]
-  customers     Customer[]
-  products      Product[]
-  invoices      Invoice[]
+  userCompanies    UserCompany[]
+  customers        Customer[]
+  products         Product[]
+  invoices         Invoice[]
+  vdsCertificates  VdsCertificate[]
+  treasuryDeposits TreasuryDeposit[]
+  vatReturns       VatReturn[]
 
   @@map("companies")
 }
@@ -134,11 +142,12 @@ model Invoice {
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
 
-  company  Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  creator  User          @relation("invoiceCreator", fields: [createdBy], references: [id])
-  approver User?         @relation("invoiceApprover", fields: [approvedBy], references: [id])
-  items    InvoiceItem[]
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  creator         User             @relation("invoiceCreator", fields: [createdBy], references: [id])
+  approver        User?            @relation("invoiceApprover", fields: [approvedBy], references: [id])
+  items           InvoiceItem[]
+  vdsCertificates VdsCertificate[]
 
   @@unique([companyId, challanNo])
   @@map("invoices")
@@ -199,4 +208,153 @@ enum CompanyRole {
 enum ProductType {
   product
   service
+}
+
+enum VdsCertificateRole {
+  deductor
+  deductee
+}
+
+enum VdsCertificateStatus {
+  draft
+  finalized
+  cancelled
+}
+
+enum TreasuryDepositStatus {
+  pending
+  deposited
+  verified
+}
+
+enum VatReturnStatus {
+  draft
+  reviewed
+  submitted
+  locked
+}
+
+model VdsCertificate {
+  id                   BigInt               @id @default(autoincrement())
+  companyId            BigInt               @map("company_id")
+  certificateNo        String               @map("certificate_no") @db.VarChar(50)
+  certificateDate      DateTime             @map("certificate_date") @db.Date
+  fiscalYear           String               @map("fiscal_year") @db.VarChar(9)
+  taxMonth             String               @map("tax_month") @db.VarChar(7)
+  role                 VdsCertificateRole
+  invoiceId            BigInt?              @map("invoice_id")
+  counterpartyName     String               @map("counterparty_name") @db.VarChar(200)
+  counterpartyBin      String               @map("counterparty_bin") @db.VarChar(13)
+  counterpartyAddress  String?              @map("counterparty_address") @db.Text
+  totalValue           Decimal              @map("total_value") @db.Decimal(14, 2)
+  vatAmount            Decimal              @map("vat_amount") @db.Decimal(14, 2)
+  vdsRate              Decimal              @map("vds_rate") @db.Decimal(5, 2)
+  vdsAmount            Decimal              @map("vds_amount") @db.Decimal(14, 2)
+  status               VdsCertificateStatus @default(draft)
+  notes                String?              @db.Text
+  createdBy            BigInt               @map("created_by")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice  Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  creator  User     @relation("vdsCertificateCreator", fields: [createdBy], references: [id])
+
+  deposits VdsCertificateDeposit[]
+
+  @@unique([companyId, certificateNo])
+  @@map("vds_certificates")
+}
+
+model TreasuryDeposit {
+  id           BigInt                @id @default(autoincrement())
+  companyId    BigInt                @map("company_id")
+  challanNo    String                @map("challan_no") @db.VarChar(50)
+  depositDate  DateTime              @map("deposit_date") @db.Date
+  fiscalYear   String                @map("fiscal_year") @db.VarChar(9)
+  taxMonth     String                @map("tax_month") @db.VarChar(7)
+  bankName     String                @map("bank_name") @db.VarChar(200)
+  bankBranch   String?               @map("bank_branch") @db.VarChar(200)
+  accountCode  String?               @map("account_code") @db.VarChar(50)
+  totalAmount  Decimal               @map("total_amount") @db.Decimal(14, 2)
+  status       TreasuryDepositStatus @default(pending)
+  notes        String?               @db.Text
+  createdBy    BigInt                @map("created_by")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator  User    @relation("treasuryDepositCreator", fields: [createdBy], references: [id])
+
+  certificates VdsCertificateDeposit[]
+
+  @@unique([companyId, challanNo])
+  @@map("treasury_deposits")
+}
+
+model VdsCertificateDeposit {
+  id            BigInt  @id @default(autoincrement())
+  certificateId BigInt  @map("certificate_id")
+  depositId     BigInt  @map("deposit_id")
+  amount        Decimal @db.Decimal(14, 2)
+
+  certificate VdsCertificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  deposit     TreasuryDeposit @relation(fields: [depositId], references: [id], onDelete: Cascade)
+
+  @@unique([certificateId, depositId])
+  @@map("vds_certificate_deposits")
+}
+
+model VatReturn {
+  id                   BigInt          @id @default(autoincrement())
+  companyId            BigInt          @map("company_id")
+  taxMonth             String          @map("tax_month") @db.VarChar(7)
+  fiscalYear           String          @map("fiscal_year") @db.VarChar(9)
+
+  totalSalesValue      Decimal         @map("total_sales_value") @db.Decimal(14, 2)
+  outputVat            Decimal         @map("output_vat") @db.Decimal(14, 2)
+  sdPayable            Decimal         @map("sd_payable") @db.Decimal(14, 2)
+  totalPurchaseValue   Decimal         @map("total_purchase_value") @db.Decimal(14, 2)
+  inputVat             Decimal         @map("input_vat") @db.Decimal(14, 2)
+  vdsCredit            Decimal         @map("vds_credit") @db.Decimal(14, 2)
+
+  carryForward         Decimal         @default(0) @map("carry_forward") @db.Decimal(14, 2)
+  increasingAdjustment Decimal         @default(0) @map("increasing_adjustment") @db.Decimal(14, 2)
+  decreasingAdjustment Decimal         @default(0) @map("decreasing_adjustment") @db.Decimal(14, 2)
+  notes                String?         @db.Text
+
+  netPayable           Decimal         @map("net_payable") @db.Decimal(14, 2)
+  musak91Json          Json            @map("musak_91_json")
+
+  status               VatReturnStatus @default(draft)
+  generatedBy          BigInt          @map("generated_by")
+  reviewedBy           BigInt?         @map("reviewed_by")
+  reviewedAt           DateTime?       @map("reviewed_at")
+  submittedAt          DateTime?       @map("submitted_at")
+  submittedBy          BigInt?         @map("submitted_by")
+  lockedAt             DateTime?       @map("locked_at")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  generator User    @relation("vatReturnGenerator", fields: [generatedBy], references: [id])
+  reviewer  User?   @relation("vatReturnReviewer", fields: [reviewedBy], references: [id])
+  submitter User?   @relation("vatReturnSubmitter", fields: [submittedBy], references: [id])
+
+  @@unique([companyId, taxMonth])
+  @@map("vat_returns")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  companyId  BigInt?  @map("company_id")
+  userId     BigInt?  @map("user_id")
+  method     String   @db.VarChar(10)
+  path       String   @db.VarChar(500)
+  statusCode Int      @map("status_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([companyId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
 }
