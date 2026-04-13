@@ -19,7 +19,9 @@ function ExportSection() {
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
       message.error('Export failed');
@@ -27,10 +29,10 @@ function ExportSection() {
   };
 
   const downloadProducts = (format: 'csv' | 'xlsx') =>
-    download(`/export/products?format=${format}`, `products.${format}`);
+    download(`export/products?format=${format}`, `products.${format}`);
 
   const downloadCustomers = (format: 'csv' | 'xlsx') =>
-    download(`/export/customers?format=${format}`, `customers.${format}`);
+    download(`export/customers?format=${format}`, `customers.${format}`);
 
   const downloadInvoices = (format: 'csv' | 'xlsx') => {
     const params = new URLSearchParams({ format });
@@ -39,7 +41,7 @@ function ExportSection() {
       params.set('from', dateRange[0]);
       params.set('to', dateRange[1]);
     }
-    download(`/export/invoices?${params.toString()}`, `invoices.${format}`);
+    download(`export/invoices?${params.toString()}`, `invoices.${format}`);
   };
 
   return (
