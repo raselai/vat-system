@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Card, Typography, message, Tag, Space, Divider,
-  Table, Select, DatePicker, InputNumber, Popconfirm, Descriptions,
+  Button, Card, Typography, message, Tag, Space,
+  Table, Select, DatePicker, InputNumber, Popconfirm, Divider,
 } from 'antd';
 import {
   EditOutlined, CheckOutlined, LockOutlined,
@@ -10,8 +10,9 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../services/api';
-import { Invoice, InvoiceItem, Product } from '../../types';
+import { Invoice, InvoiceItem, Product, Company } from '../../types';
 import { calculateLineItem, calculateTotals } from '../../utils/vatCalc';
+import { useCompany } from '../../contexts/CompanyContext';
 
 const { Title, Text } = Typography;
 
@@ -22,6 +23,10 @@ const statusColors: Record<string, string> = {
   locked: 'blue',
 };
 
+function fmt(v: number) {
+  return Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 interface EditItem extends InvoiceItem {
   key: string;
 }
@@ -29,18 +34,20 @@ interface EditItem extends InvoiceItem {
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { activeCompany } = useCompany();
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
 
   // Edit state
   const [editItems, setEditItems] = useState<EditItem[]>([]);
   const [editCustomerId, setEditCustomerId] = useState<string | undefined>();
   const [editDate, setEditDate] = useState<string>('');
-  const [customers, setCustomers] = useState<any[]>([]);
 
   const fetchInvoice = async () => {
     setLoading(true);
@@ -60,6 +67,12 @@ export default function InvoiceDetail() {
     api.get('/customers').then(r => setCustomers(r.data.data)).catch(() => {});
   }, [id]);
 
+  useEffect(() => {
+    if (activeCompany?.id) {
+      api.get(`/companies/${activeCompany.id}`).then(r => setCompany(r.data.data)).catch(() => {});
+    }
+  }, [activeCompany?.id]);
+
   const enterEditMode = () => {
     if (!invoice) return;
     setEditItems(invoice.items.map(item => ({ ...item, key: item.id || Date.now().toString() })));
@@ -67,8 +80,6 @@ export default function InvoiceDetail() {
     setEditDate(invoice.challanDate);
     setEditMode(true);
   };
-
-  const cancelEdit = () => setEditMode(false);
 
   const updateItem = (key: string, field: string, value: any) => {
     setEditItems(prev => prev.map(item => {
@@ -163,17 +174,6 @@ export default function InvoiceDetail() {
 
   const totals = editMode ? calculateTotals(editItems) : null;
 
-  const viewColumns = [
-    { title: 'Description', dataIndex: 'description', key: 'description' },
-    { title: 'HS Code', dataIndex: 'hsCode', key: 'hsCode', render: (v: string) => v || '-' },
-    { title: 'Qty', dataIndex: 'qty', key: 'qty' },
-    { title: 'Unit Price', dataIndex: 'unitPrice', key: 'unitPrice', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'Taxable', dataIndex: 'taxableValue', key: 'taxableValue', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'SD', dataIndex: 'sdAmount', key: 'sdAmount', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'VAT', dataIndex: 'vatAmount', key: 'vatAmount', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'Total', dataIndex: 'grandTotal', key: 'grandTotal', render: (v: number) => <strong>{v.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong> },
-  ];
-
   const editColumns = [
     {
       title: 'Product', key: 'productId', width: 200,
@@ -191,14 +191,14 @@ export default function InvoiceDetail() {
       title: 'Unit Price', key: 'unitPrice', width: 110,
       render: (_: unknown, r: EditItem) => <InputNumber value={r.unitPrice} min={0} onChange={v => updateItem(r.key, 'unitPrice', v || 0)} style={{ width: '100%' }} />,
     },
-    { title: 'Taxable', key: 'taxableValue', width: 100, render: (_: unknown, r: EditItem) => r.taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'VAT', key: 'vatAmount', width: 100, render: (_: unknown, r: EditItem) => r.vatAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'Total', key: 'grandTotal', width: 110, render: (_: unknown, r: EditItem) => <strong>{r.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong> },
+    { title: 'Taxable', key: 'taxableValue', width: 100, render: (_: unknown, r: EditItem) => fmt(r.taxableValue) },
+    { title: 'VAT', key: 'vatAmount', width: 100, render: (_: unknown, r: EditItem) => fmt(r.vatAmount) },
+    { title: 'Total', key: 'grandTotal', width: 110, render: (_: unknown, r: EditItem) => <strong>{fmt(r.grandTotal)}</strong> },
   ];
 
   return (
     <div>
-      {/* Header */}
+      {/* Action bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/invoices')}>Back</Button>
@@ -219,7 +219,7 @@ export default function InvoiceDetail() {
           {invoice.status === 'draft' && editMode && (
             <>
               <Button type="primary" loading={actionLoading} onClick={handleSave}>Save</Button>
-              <Button onClick={cancelEdit}>Discard</Button>
+              <Button onClick={() => setEditMode(false)}>Discard</Button>
             </>
           )}
           {invoice.status === 'approved' && (
@@ -236,76 +236,173 @@ export default function InvoiceDetail() {
         </Space>
       </div>
 
-      {/* Info */}
-      <Card style={{ marginBottom: 16 }}>
-        {!editMode ? (
-          <Descriptions column={3}>
-            <Descriptions.Item label="Type">{invoice.invoiceType}</Descriptions.Item>
-            <Descriptions.Item label="Date">{new Date(invoice.challanDate).toLocaleDateString('en-GB')}</Descriptions.Item>
-            <Descriptions.Item label="Customer">{invoice.customer?.name || '-'}</Descriptions.Item>
-            <Descriptions.Item label="Customer BIN">{invoice.customer?.binNid || '-'}</Descriptions.Item>
-            <Descriptions.Item label="VDS">{invoice.vdsApplicable ? 'Yes' : 'No'}</Descriptions.Item>
-          </Descriptions>
-        ) : (
-          <Space size="large" wrap>
+      {/* Edit mode */}
+      {editMode && (
+        <div>
+          <Card style={{ marginBottom: 16 }}>
+            <Space size="large" wrap>
+              <div>
+                <Text strong>Date: </Text>
+                <DatePicker value={dayjs(editDate)} onChange={d => setEditDate(d?.format('YYYY-MM-DD') || '')} />
+              </div>
+              <div>
+                <Text strong>Customer: </Text>
+                <Select value={editCustomerId} onChange={setEditCustomerId} allowClear style={{ width: 220 }}
+                  showSearch optionFilterProp="label" placeholder="Select customer"
+                  options={customers.map((c: any) => ({ value: c.id, label: `${c.name} (${c.binNid || 'No BIN'})` }))} />
+              </div>
+            </Space>
+          </Card>
+          <Card title="Line Items" style={{ marginBottom: 16 }}>
+            <Table columns={editColumns} dataSource={editItems} rowKey="key" pagination={false} scroll={{ x: 700 }} size="small" />
+          </Card>
+          <Card>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ minWidth: 300 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Subtotal:</span><span>{fmt(totals!.subtotal)}</span></div>
+                {totals!.sdTotal > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>SD Total:</span><span>{fmt(totals!.sdTotal)}</span></div>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>VAT Total:</span><span>{fmt(totals!.vatTotal)}</span></div>
+                <Divider style={{ margin: '8px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 16 }}><span>Grand Total:</span><span>{fmt(totals!.grandTotal)}</span></div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Challan preview (view mode) */}
+      {!editMode && (
+        <div style={{
+          background: '#fff',
+          border: '1px solid #d9d9d9',
+          borderRadius: 4,
+          padding: 32,
+          maxWidth: 900,
+          fontFamily: "'Noto Sans Bengali', sans-serif",
+          fontSize: 11,
+          color: '#333',
+        }}>
+          {/* Government header */}
+          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            <div style={{ fontSize: 28, lineHeight: 1, marginBottom: 2 }}>🇧🇩</div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</div>
+            <div style={{ fontSize: 11, fontWeight: 600 }}>জাতীয় রাজস্ব বোর্ড</div>
+            <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2 }}>Government of the People's Republic of Bangladesh</div>
+            <div style={{ fontSize: 10, fontWeight: 600 }}>National Board of Revenue</div>
+            <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>মূসক-৬.৩ / Musak-6.3</div>
+          </div>
+
+          {/* Challan header */}
+          <div style={{ textAlign: 'center', borderTop: '2px solid #000', borderBottom: '2px solid #000', padding: '8px 0', marginBottom: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>কর চালানপত্র / Tax Invoice (Challan)</div>
+            <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4 }}>{company?.name || activeCompany?.name}</div>
+            <div style={{ fontSize: 10, color: '#555' }}>
+              BIN: {company?.bin || activeCompany?.bin} {company?.address ? `| ${company.address}` : ''}
+            </div>
+          </div>
+
+          {/* Info grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
             <div>
-              <Text strong>Date: </Text>
-              <DatePicker value={dayjs(editDate)} onChange={d => setEditDate(d?.format('YYYY-MM-DD') || '')} />
+              {[
+                ['চালান নম্বর / Challan No', invoice.challanNo],
+                ['তারিখ / Date', new Date(invoice.challanDate).toLocaleDateString('en-GB')],
+                ['ধরন / Type', invoice.invoiceType === 'sales' ? 'বিক্রয় / Sales' : 'ক্রয় / Purchase'],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: 'flex', marginBottom: 4 }}>
+                  <span style={{ fontWeight: 600, minWidth: 160, fontSize: 11 }}>{label}:</span>
+                  <span style={{ flex: 1, fontSize: 11 }}>{value}</span>
+                </div>
+              ))}
             </div>
             <div>
-              <Text strong>Customer: </Text>
-              <Select value={editCustomerId} onChange={setEditCustomerId} allowClear style={{ width: 220 }}
-                showSearch optionFilterProp="label" placeholder="Select customer"
-                options={customers.map((c: any) => ({ value: c.id, label: `${c.name} (${c.binNid || 'No BIN'})` }))} />
+              {[
+                ['ক্রেতার নাম / Buyer', invoice.customer?.name || 'N/A'],
+                ['ক্রেতার BIN', invoice.customer?.binNid || 'N/A'],
+                ['ঠিকানা / Address', invoice.customer?.address || 'N/A'],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: 'flex', marginBottom: 4 }}>
+                  <span style={{ fontWeight: 600, minWidth: 140, fontSize: 11 }}>{label}:</span>
+                  <span style={{ flex: 1, fontSize: 11 }}>{value}</span>
+                </div>
+              ))}
             </div>
-          </Space>
-        )}
-      </Card>
+          </div>
 
-      {/* Line Items */}
-      <Card title="Line Items" style={{ marginBottom: 16 }}>
-        <Table
-          columns={editMode ? editColumns : viewColumns}
-          dataSource={(editMode ? editItems : invoice.items) as any[]}
-          rowKey={editMode ? 'key' : 'id'}
-          pagination={false}
-          scroll={{ x: 900 }}
-          size="small"
-        />
-      </Card>
+          {/* Line items table */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 14 }}>
+            <thead>
+              <tr>
+                {['ক্রম\nSL', 'পণ্য/সেবার বিবরণ\nDescription', 'HS Code', 'একক\nUnit', 'পরিমাণ\nQty', 'একক মূল্য\nUnit Price', 'করযোগ্য মূল্য\nTaxable Value', 'SD %', 'SD পরিমাণ\nSD Amount', 'VAT %', 'VAT পরিমাণ\nVAT Amount', 'মোট\nTotal'].map((h, i) => (
+                  <th key={i} style={{ border: '1px solid #333', padding: '4px 5px', background: '#f0f0f0', fontWeight: 700, textAlign: 'center', fontSize: 10, whiteSpace: 'pre-line' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.items.map((item, idx) => (
+                <tr key={item.id || idx}>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'center', fontSize: 10 }}>{idx + 1}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', fontSize: 10 }}>
+                    {item.description}
+                    {item.descriptionBn && <><br /><span style={{ color: '#555' }}>{item.descriptionBn}</span></>}
+                  </td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'center', fontSize: 10 }}>{item.hsCode || '-'}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'center', fontSize: 10 }}>{item.product?.unit || '-'}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'right', fontSize: 10 }}>{item.qty}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'right', fontSize: 10 }}>{fmt(item.unitPrice)}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'right', fontSize: 10 }}>{fmt(item.taxableValue)}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'right', fontSize: 10 }}>{item.sdRate}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'right', fontSize: 10 }}>{fmt(item.sdAmount)}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'right', fontSize: 10 }}>{item.vatRate}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'right', fontSize: 10 }}>{fmt(item.vatAmount)}</td>
+                  <td style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'right', fontSize: 10, fontWeight: 600 }}>{fmt(item.grandTotal)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-      {/* Totals */}
-      <Card>
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ minWidth: 300 }}>
-            {(() => {
-              const sub = editMode ? totals!.subtotal : invoice.subtotal;
-              const sd = editMode ? totals!.sdTotal : invoice.sdTotal;
-              const vat = editMode ? totals!.vatTotal : invoice.vatTotal;
-              const sd2 = editMode ? totals!.specificDutyTotal : invoice.specificDutyTotal;
-              const grand = editMode ? totals!.grandTotal : invoice.grandTotal;
-              const vdsAmt = editMode ? totals!.vdsAmount : invoice.vdsAmount;
-              const net = editMode ? totals!.netReceivable : invoice.netReceivable;
-              return (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Subtotal:</span><span>{sub.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-                  {sd > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>SD Total:</span><span>{sd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>VAT Total:</span><span>{vat.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-                  {sd2 > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Specific Duty:</span><span>{sd2.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>}
-                  <Divider style={{ margin: '8px 0' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 16, marginBottom: 4 }}><span>Grand Total:</span><span>{grand.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-                  {invoice.vdsApplicable && (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>VDS Amount:</span><span>{vdsAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}><span>Net Receivable:</span><span>{net.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-                    </>
-                  )}
-                </>
-              );
-            })()}
+          {/* Totals */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: 40 }}>
+            {[
+              ['মোট করযোগ্য মূল্য / Subtotal', fmt(invoice.subtotal)],
+              ...(invoice.sdTotal > 0 ? [['সম্পূরক শুল্ক / SD Total', fmt(invoice.sdTotal)]] : []),
+              ['মূল্য সংযোজন কর / VAT Total', fmt(invoice.vatTotal)],
+              ...(invoice.specificDutyTotal > 0 ? [['সুনির্দিষ্ট শুল্ক / Specific Duty', fmt(invoice.specificDutyTotal)]] : []),
+            ].map(([label, value]) => (
+              <div key={label} style={{ display: 'flex', gap: 20, marginBottom: 3 }}>
+                <span style={{ fontWeight: 600, minWidth: 240, textAlign: 'right', fontSize: 11 }}>{label}:</span>
+                <span style={{ minWidth: 120, textAlign: 'right', fontSize: 11 }}>{value}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 20, marginBottom: 3, borderTop: '1px solid #333', paddingTop: 4 }}>
+              <span style={{ fontWeight: 700, minWidth: 240, textAlign: 'right', fontSize: 13 }}>সর্বমোট / Grand Total:</span>
+              <span style={{ minWidth: 120, textAlign: 'right', fontSize: 13, fontWeight: 700 }}>{fmt(invoice.grandTotal)}</span>
+            </div>
+            {invoice.vdsApplicable && (
+              <>
+                <div style={{ display: 'flex', gap: 20, marginBottom: 3 }}>
+                  <span style={{ fontWeight: 600, minWidth: 240, textAlign: 'right', fontSize: 11 }}>উৎসে কর্তিত VAT / VDS Amount:</span>
+                  <span style={{ minWidth: 120, textAlign: 'right', fontSize: 11 }}>{fmt(invoice.vdsAmount)}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 20 }}>
+                  <span style={{ fontWeight: 600, minWidth: 240, textAlign: 'right', fontSize: 11 }}>নীট প্রাপ্য / Net Receivable:</span>
+                  <span style={{ minWidth: 120, textAlign: 'right', fontSize: 11 }}>{fmt(invoice.netReceivable)}</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Signatures */}
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ textAlign: 'center', borderTop: '1px solid #333', paddingTop: 4, minWidth: 150, fontSize: 11 }}>
+              ক্রেতার স্বাক্ষর<br />Buyer's Signature
+            </div>
+            <div style={{ textAlign: 'center', borderTop: '1px solid #333', paddingTop: 4, minWidth: 150, fontSize: 11 }}>
+              বিক্রেতার স্বাক্ষর<br />Seller's Signature
+            </div>
           </div>
         </div>
-      </Card>
+      )}
     </div>
   );
 }

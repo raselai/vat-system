@@ -106,6 +106,7 @@ export interface InvoiceItem {
   grandTotal: number;
   vdsRate: number;
   vdsAmount: number;
+  product?: { unit: string };
 }
 
 export interface Invoice {
