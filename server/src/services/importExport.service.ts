@@ -323,6 +323,16 @@ export async function importInvoices(
     const sdRate = row.sdRate ? parseFloat(row.sdRate) : 0;
     const truncatedBasePct = row.truncatedBasePct ? parseFloat(row.truncatedBasePct) : 100;
 
+    if (isNaN(sdRate) || sdRate < 0 || sdRate > 100) {
+      errors.push({ row: rowNum, field: 'sdRate', message: 'SD Rate must be a number 0–100' });
+      return;
+    }
+
+    if (isNaN(truncatedBasePct) || truncatedBasePct < 0 || truncatedBasePct > 100) {
+      errors.push({ row: rowNum, field: 'truncatedBasePct', message: 'Truncated Base % must be 0–100' });
+      return;
+    }
+
     let customerId: bigint | null = null;
     if (row.customerBin) {
       const customer = customerByBin.get(row.customerBin);
