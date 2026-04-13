@@ -145,6 +145,7 @@ function ImportWizard({ entity }: { entity: 'products' | 'customers' | 'invoices
 
   const reset = () => {
     setStep(0);
+    setLoading(false);
     setFile(null);
     setPreview(null);
     setColumnMap({});
