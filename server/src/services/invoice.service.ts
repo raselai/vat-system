@@ -34,6 +34,11 @@ function serializeItem(item: any) {
     id: item.id.toString(),
     invoiceId: item.invoiceId.toString(),
     productId: item.productId.toString(),
+    product: item.product ? {
+      ...item.product,
+      id: item.product.id.toString(),
+      companyId: item.product.companyId.toString(),
+    } : undefined,
     qty: Number(item.qty),
     unitPrice: Number(item.unitPrice),
     vatRate: Number(item.vatRate),
