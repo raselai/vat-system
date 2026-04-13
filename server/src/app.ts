@@ -9,6 +9,7 @@ import vdsRoutes from './routes/vds.routes';
 import registerRoutes from './routes/register.routes';
 import returnRoutes from './routes/return.routes';
 import auditLogRoutes from './routes/auditLog.routes';
+import importExportRoutes from './routes/importExport.routes';
 
 const app = express();
 
@@ -30,5 +31,6 @@ app.use('/api/v1/vds', vdsRoutes);
 app.use('/api/v1/registers', registerRoutes);
 app.use('/api/v1/returns', returnRoutes);
 app.use('/api/v1/audit-logs', auditLogRoutes);
+app.use('/api/v1', importExportRoutes);
 
 export default app;
