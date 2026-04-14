@@ -7,7 +7,7 @@ import path from 'path';
 const RETENTION_DAYS = 30;
 
 function getBackupDir(): string {
-  return process.env.BACKUP_DIR || './backups';
+  return path.resolve(process.env.BACKUP_DIR || './backups');
 }
 
 function parseDatabaseUrl(): {
