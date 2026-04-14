@@ -114,6 +114,7 @@ export async function runBackup(): Promise<{
     });
 
     output.on('error', (err) => {
+      failed = true;
       try { unlinkSync(filepath); } catch {}
       reject(err);
     });
