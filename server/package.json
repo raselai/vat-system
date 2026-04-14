@@ -14,8 +14,8 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@sparticuz/chromium": "^123.0.1",
     "@prisma/client": "^6.5.0",
+    "@sparticuz/chromium": "^123.0.1",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -23,6 +23,7 @@
     "handlebars": "^4.7.9",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.1.1",
+    "node-cron": "^4.2.1",
     "puppeteer": "^24.40.0",
     "puppeteer-core": "^24.40.0",
     "xlsx": "^0.18.5",
@@ -35,6 +36,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/multer": "^2.1.0",
     "@types/node": "^22.13.10",
+    "@types/node-cron": "^3.0.11",
     "prisma": "^6.5.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
