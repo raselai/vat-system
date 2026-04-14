@@ -8,7 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { VatReturn, VatReturnStatus } from '../../types';
 import {
   getReturn, updateReturn, reviewReturn, submitReturn,
-  lockReturn, downloadReturnPdf,
+  lockReturn, downloadReturnPdf, downloadNbrFilingGuide,
 } from '../../services/return';
 
 const { Title } = Typography;
@@ -102,6 +102,15 @@ export default function ReturnDetail() {
     }
   };
 
+  const handleNbrGuide = async () => {
+    if (!ret) return;
+    try {
+      await downloadNbrFilingGuide(ret.id, ret.taxMonth);
+    } catch {
+      message.error('Failed to generate NBR filing guide');
+    }
+  };
+
   if (!ret) return null;
 
   const isDraft = ret.status === 'draft';
@@ -187,6 +196,7 @@ export default function ReturnDetail() {
       <Divider />
       <Space>
         <Button icon={<FilePdfOutlined />} onClick={handlePdf}>Download PDF</Button>
+        <Button icon={<FilePdfOutlined />} onClick={handleNbrGuide}>NBR Filing Guide</Button>
         {ret.status === 'draft' && (
           <Popconfirm title="Mark as reviewed?" onConfirm={() => handleAction('review')}>
             <Button type="primary">Mark Reviewed</Button>

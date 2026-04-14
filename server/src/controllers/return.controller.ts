@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import * as returnService from '../services/return.service';
 import { generateReturnSchema, updateReturnSchema } from '../validators/return.validator';
 import { success, created, error, notFound, forbidden } from '../utils/response';
-import { generateMusak91Pdf } from '../services/pdf.service';
+import { generateMusak91Pdf, generateNbrFilingGuidePdf } from '../services/pdf.service';
 import prisma from '../utils/prisma';
 
 export async function listReturns(req: Request, res: Response) {
@@ -102,7 +102,37 @@ export async function getReturnPdf(req: Request, res: Response) {
 export async function nbrExport(req: Request, res: Response) {
   if (req.companyRole !== 'admin') return forbidden(res, 'Only admins can export');
   const id = typeof req.params.id === 'string' ? req.params.id : req.params.id[0];
-  const ret = await returnService.getReturnById(req.companyId!, BigInt(id));
+
+  const [ret, company] = await Promise.all([
+    returnService.getReturnById(req.companyId!, BigInt(id)),
+    prisma.company.findUnique({ where: { id: req.companyId! } }),
+  ]);
   if (!ret) return notFound(res, 'Return not found');
-  return success(res, ret.musak91Json);
+  if (!company) return notFound(res, 'Company not found');
+
+  try {
+    const pdfBuffer = await generateNbrFilingGuidePdf({
+      companyName: company.name,
+      companyBin: company.bin,
+      companyAddress: company.address,
+      taxMonth: ret.taxMonth,
+      status: ret.status,
+      totalSalesValue: Number(ret.totalSalesValue),
+      outputVat: Number(ret.outputVat),
+      sdPayable: Number(ret.sdPayable),
+      totalPurchaseValue: Number(ret.totalPurchaseValue),
+      inputVat: Number(ret.inputVat),
+      vdsCredit: Number(ret.vdsCredit),
+      carryForward: Number(ret.carryForward),
+      increasingAdjustment: Number(ret.increasingAdjustment),
+      decreasingAdjustment: Number(ret.decreasingAdjustment),
+      netPayable: Number(ret.netPayable),
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="nbr-filing-guide-${ret.taxMonth}.pdf"`);
+    res.end(pdfBuffer);
+  } catch (err: any) {
+    return error(res, `PDF generation failed: ${err.message}`, 500);
+  }
 }

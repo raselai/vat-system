@@ -10,6 +10,7 @@
     /* Government header */
     .gov-header { text-align: center; margin-bottom: 6px; }
     .gov-header .emblem { font-size: 32px; line-height: 1; margin-bottom: 2px; }
+    .gov-header .emblem-img { width: 64px; height: 64px; margin-bottom: 4px; }
     .gov-header .gov-title { font-size: 13px; font-weight: 700; }
     .gov-header .gov-subtitle { font-size: 11px; font-weight: 600; }
     .gov-header .form-no { font-size: 10px; color: #555; margin-top: 2px; }
@@ -44,7 +45,7 @@
 
   <!-- Government Header -->
   <div class="gov-header">
-    <div class="emblem">🇧🇩</div>
+    {{#if logoDataUri}}<img src="{{logoDataUri}}" class="emblem-img" alt="Government Seal">{{else}}<div class="emblem">🇧🇩</div>{{/if}}
     <div class="gov-title">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</div>
     <div class="gov-subtitle">জাতীয় রাজস্ব বোর্ড</div>
     <div class="gov-title" style="font-size:11px; margin-top:2px;">Government of the People's Republic of Bangladesh</div>

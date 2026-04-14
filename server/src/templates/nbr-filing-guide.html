@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; font-size: 11px; padding: 24px; color: #1a1a1a; }
+
+    /* Header */
+    .header { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #00503a; padding-bottom: 12px; margin-bottom: 14px; }
+    .header img { width: 52px; height: 52px; }
+    .header .titles { flex: 1; }
+    .header .titles .company { font-size: 15px; font-weight: 700; color: #00503a; }
+    .header .titles .sub { font-size: 10px; color: #555; margin-top: 2px; }
+    .header .badge { background: #00503a; color: #fff; padding: 6px 12px; border-radius: 4px; text-align: center; }
+    .header .badge .period { font-size: 13px; font-weight: 700; }
+    .header .badge .label { font-size: 9px; opacity: 0.85; }
+
+    /* Deadline banner */
+    .deadline-banner { background: #fff7e6; border: 1px solid #fa8c16; border-radius: 4px; padding: 7px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .deadline-banner .dl-label { font-size: 10px; color: #873800; font-weight: 600; }
+    .deadline-banner .dl-date { font-size: 12px; font-weight: 700; color: #d46b08; }
+    .deadline-banner .dl-note { font-size: 9px; color: #555; }
+
+    /* Section titles */
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #00503a; background: #e8f5ef; padding: 5px 8px; margin-bottom: 6px; border-left: 3px solid #00503a; }
+
+    /* Checklist */
+    .checklist { list-style: none; margin-bottom: 14px; }
+    .checklist li { display: flex; align-items: flex-start; gap: 8px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-size: 11px; }
+    .checklist li:last-child { border-bottom: none; }
+    .checkbox { width: 13px; height: 13px; border: 1.5px solid #666; border-radius: 2px; flex-shrink: 0; margin-top: 1px; }
+    .checklist .amount { font-weight: 700; color: #00503a; }
+
+    /* Filing steps */
+    .steps { margin-bottom: 14px; }
+    .step { display: flex; gap: 10px; margin-bottom: 8px; }
+    .step-num { background: #00503a; color: #fff; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-body .step-title { font-weight: 600; font-size: 11px; }
+    .step-body .step-desc { font-size: 10px; color: #555; margin-top: 1px; }
+
+    /* Data tables */
+    table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+    th { background: #f6f6f6; font-weight: 700; text-align: left; padding: 6px 8px; font-size: 10px; border: 1px solid #d9d9d9; }
+    td { padding: 6px 8px; border: 1px solid #d9d9d9; font-size: 11px; }
+    td.value { text-align: right; font-weight: 600; font-family: monospace; font-size: 11px; }
+    td.portal-field { font-size: 10px; color: #555; font-style: italic; }
+    tr.highlight td { background: #f0f9f4; }
+    tr.total-row td { background: #00503a; color: #fff; font-weight: 700; }
+    tr.total-row td.value { font-size: 13px; }
+
+    /* Net payable box */
+    .net-box { border: 2px solid #00503a; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; background: #f0f9f4; }
+    .net-box .net-label { font-size: 13px; font-weight: 700; color: #00503a; }
+    .net-box .net-value { font-size: 20px; font-weight: 700; color: #00503a; font-family: monospace; }
+    .net-box .net-formula { font-size: 9px; color: #555; margin-top: 3px; }
+
+    /* Docs section */
+    .docs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+    .doc-item { border: 1px solid #d9d9d9; border-radius: 4px; padding: 7px 10px; display: flex; align-items: center; gap: 8px; }
+    .doc-icon { font-size: 18px; }
+    .doc-label { font-size: 10px; font-weight: 600; }
+    .doc-desc { font-size: 9px; color: #777; margin-top: 1px; }
+
+    /* Footer */
+    .footer { margin-top: 16px; padding-top: 8px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 9px; color: #888; }
+
+    .status-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+    .status-draft { background: #f5f5f5; color: #555; border: 1px solid #d9d9d9; }
+    .status-reviewed { background: #e6f4ff; color: #0958d9; border: 1px solid #91caff; }
+    .status-submitted { background: #fff7e6; color: #d46b08; border: 1px solid #ffd591; }
+    .status-locked { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    {{#if logoDataUri}}<img src="{{logoDataUri}}" alt="Government Seal">{{/if}}
+    <div class="titles">
+      <div class="company">{{companyName}}</div>
+      <div class="sub">BIN: {{companyBin}}{{#if companyAddress}} &nbsp;|&nbsp; {{companyAddress}}{{/if}}</div>
+      <div class="sub" style="margin-top:4px;">
+        NBR Filing Guide &nbsp;&nbsp; Status: <span class="status-badge status-{{status}}">{{status}}</span>
+      </div>
+    </div>
+    <div class="badge">
+      <div class="period">{{taxMonth}}</div>
+      <div class="label">Mushak 9.1</div>
+    </div>
+  </div>
+
+  <!-- Deadline Banner -->
+  <div class="deadline-banner">
+    <div>
+      <div class="dl-label">FILING DEADLINE</div>
+      <div class="dl-note">Deposit tax to treasury before filing</div>
+    </div>
+    <div class="dl-date">{{filingDeadline}}</div>
+  </div>
+
+  <!-- Pre-Filing Checklist -->
+  <div class="section-title">Pre-Filing Checklist</div>
+  <ul class="checklist">
+    <li>
+      <div class="checkbox"></div>
+      <span>Treasury deposit of <span class="amount">৳ {{netPayable}}</span> made to government treasury (must be done BEFORE filing)</span>
+    </li>
+    <li>
+      <div class="checkbox"></div>
+      <span>All sales invoices for {{taxMonth}} are approved or locked</span>
+    </li>
+    <li>
+      <div class="checkbox"></div>
+      <span>All purchase invoices for {{taxMonth}} are recorded</span>
+    </li>
+    <li>
+      <div class="checkbox"></div>
+      <span>All VDS certificates for {{taxMonth}} are finalized</span>
+    </li>
+    <li>
+      <div class="checkbox"></div>
+      <span>Mushak 6.7 (Sales &amp; Purchase Register) PDF exported and ready to attach</span>
+    </li>
+    {{#if hasVds}}
+    <li>
+      <div class="checkbox"></div>
+      <span>Mushak 6.6 (VDS Certificates) PDFs ready to attach</span>
+    </li>
+    {{/if}}
+    <li>
+      <div class="checkbox"></div>
+      <span>Mushak 9.1 PDF exported and ready to attach</span>
+    </li>
+  </ul>
+
+  <!-- Portal Steps -->
+  <div class="section-title">Portal Filing Steps — vat.gov.bd</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Log in to vat.gov.bd</div>
+        <div class="step-desc">Use your company BIN and password</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Go to "Filing Obligation" tab</div>
+        <div class="step-desc">Select Tax Period: <strong>{{taxMonth}}</strong> and open Mushak 9.1</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Enter the figures below in Part 3 &amp; Part 4</div>
+        <div class="step-desc">Use the exact values from this guide</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Attach supporting documents</div>
+        <div class="step-desc">Mushak 6.3 challans, 6.6 VDS certificates, 6.7 register, 9.1 PDF</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Review and Submit</div>
+        <div class="step-desc">Verify all figures match, then click Submit before {{filingDeadline}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 3: Sales / Output Tax -->
+  <div class="section-title">Part 3 — Sales &amp; Output Tax (enter these values in the portal)</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:55%">Description</th>
+        <th style="width:25%; text-align:right">Amount (৳)</th>
+        <th style="width:20%">Portal Field</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight">
+        <td>Total Sales Value (Taxable)</td>
+        <td class="value">{{totalSalesValue}}</td>
+        <td class="portal-field">Part 3 &gt; Row 1 &gt; Taxable Value</td>
+      </tr>
+      <tr>
+        <td>Output VAT (15% or applicable rate)</td>
+        <td class="value">{{outputVat}}</td>
+        <td class="portal-field">Part 3 &gt; Row 1 &gt; VAT Amount</td>
+      </tr>
+      {{#if hasSd}}
+      <tr>
+        <td>Supplementary Duty (SD) Payable</td>
+        <td class="value">{{sdPayable}}</td>
+        <td class="portal-field">Part 3 &gt; SD Row</td>
+      </tr>
+      {{/if}}
+    </tbody>
+  </table>
+
+  <!-- Part 4: Purchases / Input Tax -->
+  <div class="section-title">Part 4 — Purchases &amp; Input Tax Credit (enter these values in the portal)</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:55%">Description</th>
+        <th style="width:25%; text-align:right">Amount (৳)</th>
+        <th style="width:20%">Portal Field</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight">
+        <td>Total Purchase Value (Taxable)</td>
+        <td class="value">{{totalPurchaseValue}}</td>
+        <td class="portal-field">Part 4 &gt; Row 1 &gt; Taxable Value</td>
+      </tr>
+      <tr>
+        <td>Input VAT Credit</td>
+        <td class="value">{{inputVat}}</td>
+        <td class="portal-field">Part 4 &gt; Row 1 &gt; VAT Amount</td>
+      </tr>
+      {{#if hasVds}}
+      <tr>
+        <td>VDS Credit (Deducted at Source)</td>
+        <td class="value">{{vdsCredit}}</td>
+        <td class="portal-field">Part 4 &gt; VDS Credit Row</td>
+      </tr>
+      {{/if}}
+    </tbody>
+  </table>
+
+  <!-- Adjustments -->
+  {{#if hasAdjustments}}
+  <div class="section-title">Adjustments</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:55%">Description</th>
+        <th style="width:25%; text-align:right">Amount (৳)</th>
+        <th style="width:20%">Effect</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#if carryForward}}
+      <tr>
+        <td>Carry Forward (from {{prevMonth}})</td>
+        <td class="value">{{carryForward}}</td>
+        <td class="portal-field">Reduces payable</td>
+      </tr>
+      {{/if}}
+      {{#if increasingAdjustment}}
+      <tr>
+        <td>Increasing Adjustment</td>
+        <td class="value">{{increasingAdjustment}}</td>
+        <td class="portal-field">Increases payable</td>
+      </tr>
+      {{/if}}
+      {{#if decreasingAdjustment}}
+      <tr>
+        <td>Decreasing Adjustment</td>
+        <td class="value">{{decreasingAdjustment}}</td>
+        <td class="portal-field">Reduces payable</td>
+      </tr>
+      {{/if}}
+    </tbody>
+  </table>
+  {{/if}}
+
+  <!-- Net Payable -->
+  <div class="net-box">
+    <div>
+      <div class="net-label">NET VAT PAYABLE — প্রদেয় কর (নিট)</div>
+      <div class="net-formula">
+        Output VAT ({{outputVat}}) + SD ({{sdPayable}}) − Input VAT ({{inputVat}}) − VDS ({{vdsCredit}})
+        {{#if carryForward}} − Carry Fwd ({{carryForward}}){{/if}}
+        {{#if increasingAdjustment}} + Incr. Adj ({{increasingAdjustment}}){{/if}}
+        {{#if decreasingAdjustment}} − Decr. Adj ({{decreasingAdjustment}}){{/if}}
+      </div>
+    </div>
+    <div class="net-value">৳ {{netPayable}}</div>
+  </div>
+
+  <!-- Documents to Attach -->
+  <div class="section-title">Supporting Documents to Attach in Portal</div>
+  <div class="docs-grid">
+    <div class="doc-item">
+      <div class="doc-icon">📄</div>
+      <div>
+        <div class="doc-label">Mushak 6.3 — Tax Challans</div>
+        <div class="doc-desc">Individual invoice PDFs for the period</div>
+      </div>
+    </div>
+    <div class="doc-item">
+      <div class="doc-icon">📋</div>
+      <div>
+        <div class="doc-label">Mushak 6.7 — Sales &amp; Purchase Register</div>
+        <div class="doc-desc">Download from Registers &gt; Export PDF</div>
+      </div>
+    </div>
+    {{#if hasVds}}
+    <div class="doc-item">
+      <div class="doc-icon">🧾</div>
+      <div>
+        <div class="doc-label">Mushak 6.6 — VDS Certificates</div>
+        <div class="doc-desc">Finalized VDS certificate PDFs</div>
+      </div>
+    </div>
+    {{/if}}
+    <div class="doc-item">
+      <div class="doc-icon">📑</div>
+      <div>
+        <div class="doc-label">Mushak 9.1 — VAT Return</div>
+        <div class="doc-desc">Download from Returns &gt; Download PDF</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Generated by VAT Management System &nbsp;|&nbsp; {{companyName}} (BIN: {{companyBin}})</span>
+    <span>Tax Period: {{taxMonth}} &nbsp;|&nbsp; Filing Deadline: {{filingDeadline}}</span>
+  </div>
+
+</body>
+</html>

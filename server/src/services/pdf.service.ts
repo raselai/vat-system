@@ -84,11 +84,26 @@ async function renderPdf(
   }
 }
 
+function readLogoAsBase64(): string {
+  const candidates = [
+    path.join(__dirname, '../templates/Logo.png'),
+    path.join(process.cwd(), 'src', 'templates', 'Logo.png'),
+    path.join(process.cwd(), 'server', 'src', 'templates', 'Logo.png'),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return `data:image/png;base64,${fs.readFileSync(candidate).toString('base64')}`;
+    }
+  }
+  return '';
+}
+
 export async function generateMusak63Pdf(invoiceData: any): Promise<Buffer> {
   const templateSource = readTemplate('musak63.html');
   const template = Handlebars.compile(templateSource);
 
   const html = template({
+    logoDataUri: readLogoAsBase64(),
     companyName: invoiceData.companyName,
     companyBin: invoiceData.companyBin,
     companyAddress: invoiceData.companyAddress,
@@ -199,5 +214,75 @@ export async function generateMusak91Pdf(returnData: any): Promise<Buffer> {
     format: 'A4',
     printBackground: true,
     margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
+  }, !!process.env.VERCEL);
+}
+
+function fmt(n: number): string {
+  return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function filingDeadline(taxMonth: string): string {
+  const [year, month] = taxMonth.split('-').map(Number);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const date = new Date(nextYear, nextMonth - 1, 15);
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+function prevMonth(taxMonth: string): string {
+  const [year, month] = taxMonth.split('-').map(Number);
+  const pm = month === 1 ? 12 : month - 1;
+  const py = month === 1 ? year - 1 : year;
+  return `${py}-${String(pm).padStart(2, '0')}`;
+}
+
+export async function generateNbrFilingGuidePdf(data: {
+  companyName: string;
+  companyBin: string;
+  companyAddress: string;
+  taxMonth: string;
+  status: string;
+  totalSalesValue: number;
+  outputVat: number;
+  sdPayable: number;
+  totalPurchaseValue: number;
+  inputVat: number;
+  vdsCredit: number;
+  carryForward: number;
+  increasingAdjustment: number;
+  decreasingAdjustment: number;
+  netPayable: number;
+}): Promise<Buffer> {
+  const templateSource = readTemplate('nbr-filing-guide.html');
+  const template = Handlebars.compile(templateSource);
+
+  const html = template({
+    logoDataUri: readLogoAsBase64(),
+    companyName: data.companyName,
+    companyBin: data.companyBin,
+    companyAddress: data.companyAddress,
+    taxMonth: data.taxMonth,
+    status: data.status,
+    filingDeadline: filingDeadline(data.taxMonth),
+    prevMonth: prevMonth(data.taxMonth),
+    totalSalesValue: fmt(data.totalSalesValue),
+    outputVat: fmt(data.outputVat),
+    sdPayable: fmt(data.sdPayable),
+    hasSd: data.sdPayable > 0,
+    totalPurchaseValue: fmt(data.totalPurchaseValue),
+    inputVat: fmt(data.inputVat),
+    vdsCredit: fmt(data.vdsCredit),
+    hasVds: data.vdsCredit > 0,
+    carryForward: data.carryForward > 0 ? fmt(data.carryForward) : null,
+    increasingAdjustment: data.increasingAdjustment > 0 ? fmt(data.increasingAdjustment) : null,
+    decreasingAdjustment: data.decreasingAdjustment > 0 ? fmt(data.decreasingAdjustment) : null,
+    hasAdjustments: data.carryForward > 0 || data.increasingAdjustment > 0 || data.decreasingAdjustment > 0,
+    netPayable: fmt(data.netPayable),
+  });
+
+  return renderPdf(html, {
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '15mm', right: '12mm', bottom: '15mm', left: '12mm' },
   }, !!process.env.VERCEL);
 }

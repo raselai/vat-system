@@ -52,7 +52,14 @@ export async function downloadReturnPdf(id: string, taxMonth: string) {
   window.URL.revokeObjectURL(url);
 }
 
-export async function exportNbr(id: string) {
-  const { data } = await api.get<ApiResponse<Record<string, number>>>(`/returns/${id}/nbr-export`);
-  return data.data!;
+export async function downloadNbrFilingGuide(id: string, taxMonth: string) {
+  const response = await api.get(`/returns/${id}/nbr-export`, { responseType: 'blob' });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `nbr-filing-guide-${taxMonth}.pdf`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }

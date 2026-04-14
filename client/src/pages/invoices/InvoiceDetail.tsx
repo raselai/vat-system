@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import logoUrl from '../../Image/Logo.png';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Card, Typography, message, Tag, Space,
@@ -284,7 +285,7 @@ export default function InvoiceDetail() {
         }}>
           {/* Government header */}
           <div style={{ textAlign: 'center', marginBottom: 8 }}>
-            <div style={{ fontSize: 28, lineHeight: 1, marginBottom: 2 }}>🇧🇩</div>
+            <img src={logoUrl} alt="Government Seal" style={{ width: 64, height: 64, marginBottom: 4, display: 'block', margin: '0 auto 4px' }} />
             <div style={{ fontSize: 13, fontWeight: 700 }}>গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</div>
             <div style={{ fontSize: 11, fontWeight: 600 }}>জাতীয় রাজস্ব বোর্ড</div>
             <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2 }}>Government of the People's Republic of Bangladesh</div>
