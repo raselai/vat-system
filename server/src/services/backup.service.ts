@@ -17,7 +17,14 @@ function parseDatabaseUrl(): {
   password: string;
   database: string;
 } {
-  const url = new URL(process.env.DATABASE_URL!);
+  const raw = process.env.DATABASE_URL;
+  if (!raw) throw new Error('[backup] DATABASE_URL environment variable is not set');
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch (e: any) {
+    throw new Error(`[backup] DATABASE_URL is not a valid URL: ${e.message}`);
+  }
   return {
     host: url.hostname,
     port: url.port || '3306',
@@ -62,10 +69,18 @@ export async function runBackup(): Promise<{
 
     dump.stdout.pipe(gzip).pipe(output);
 
-    // mysqldump writes "password on command line" warning to stderr — ignore it
-    dump.stderr.on('data', () => {});
+    const stderrChunks: Buffer[] = [];
+    dump.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
 
     dump.on('close', (code) => {
+      if (failed) return;
+      const stderrText = Buffer.concat(stderrChunks).toString().trim();
+      const realStderr = stderrText
+        .split('\n')
+        .filter((l) => !l.includes('password on command line'))
+        .join('\n')
+        .trim();
+      if (realStderr) console.warn('[backup] mysqldump stderr:', realStderr);
       if (code !== 0) {
         failed = true;
         gzip.destroy();
@@ -78,6 +93,8 @@ export async function runBackup(): Promise<{
 
     dump.on('error', (err) => {
       failed = true;
+      gzip.destroy();
+      output.destroy();
       try { unlinkSync(filepath); } catch {}
       reject(new Error(`Failed to spawn mysqldump: ${err.message}. Is mysqldump installed and in PATH?`));
     });
