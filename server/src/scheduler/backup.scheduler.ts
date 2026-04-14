@@ -23,5 +23,5 @@ export function startBackupScheduler(): void {
     } catch (err: any) {
       console.error(`[backup] ERROR: ${err.message}`);
     }
-  });
+  }, { timezone: 'Asia/Dhaka' });
 }
