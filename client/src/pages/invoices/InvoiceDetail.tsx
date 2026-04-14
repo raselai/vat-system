@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import logoUrl from '../../Image/Logo.png';
+import logoUrl from '../../../Image/Logo.png';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Card, Typography, message, Tag, Space,
