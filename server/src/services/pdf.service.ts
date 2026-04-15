@@ -286,3 +286,28 @@ export async function generateNbrFilingGuidePdf(data: {
     margin: { top: '15mm', right: '12mm', bottom: '15mm', left: '12mm' },
   }, !!process.env.VERCEL);
 }
+
+const REPORT_TITLES: Record<string, string> = {
+  'vat-summary':      'VAT Summary Report',
+  'vat-payable':      'VAT Payable by Rate Band',
+  'sales-summary':    'Sales Summary Report',
+  'purchase-summary': 'Purchase Summary Report',
+  'vds-summary':      'VDS Certificate Summary',
+};
+
+export async function generateReportPdf(type: string, data: any): Promise<Buffer> {
+  const templateSource = readTemplate('reports.html');
+  const template = Handlebars.compile(templateSource);
+
+  const html = template({
+    reportTitle: REPORT_TITLES[type] ?? 'Report',
+    generatedAt: new Date().toLocaleDateString('en-GB'),
+    isVatSummary:       type === 'vat-summary',
+    isVatPayable:       type === 'vat-payable',
+    showInvoiceSummary: type === 'sales-summary' || type === 'purchase-summary',
+    isVdsSummary:       type === 'vds-summary',
+    ...data,
+  });
+
+  return renderPdf(html, { format: 'A4', printBackground: true, margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' } }, !!process.env.VERCEL);
+}

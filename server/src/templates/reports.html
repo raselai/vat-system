@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans Bengali', Arial, sans-serif; font-size: 10px; padding: 20px; color: #333; }
+    .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #00503a; padding-bottom: 10px; }
+    .header h1 { font-size: 15px; font-weight: 700; color: #00503a; }
+    .header p { font-size: 9px; color: #666; margin-top: 3px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ccc; padding: 4px 6px; font-size: 9px; }
+    th { background: #f0f0f0; font-weight: 700; text-align: center; }
+    td.number { text-align: right; }
+    td.label { font-weight: 600; }
+    tr.total td { font-weight: 700; background: #f5f5f5; }
+    .meta { font-size: 9px; margin-bottom: 8px; }
+    .meta span { font-weight: 600; }
+    .empty { text-align: center; color: #999; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>{{reportTitle}}</h1>
+  <p>Tax Month: <strong>{{taxMonth}}</strong> &nbsp;|&nbsp; Generated: {{generatedAt}}</p>
+</div>
+
+{{#if isVatSummary}}
+<table>
+  <tr><th colspan="2">VAT Overview</th></tr>
+  <tr><td class="label">Sales Invoices</td><td class="number">{{salesCount}}</td></tr>
+  <tr><td class="label">Purchase Invoices</td><td class="number">{{purchaseCount}}</td></tr>
+  <tr><td class="label">Total Sales Value (BDT)</td><td class="number">{{formatNumber totalSalesValue}}</td></tr>
+  <tr><td class="label">Total Purchase Value (BDT)</td><td class="number">{{formatNumber totalPurchaseValue}}</td></tr>
+  <tr><td class="label">Output VAT (BDT)</td><td class="number">{{formatNumber outputVat}}</td></tr>
+  <tr><td class="label">Input VAT Credit (BDT)</td><td class="number">{{formatNumber inputVat}}</td></tr>
+  <tr><td class="label">SD Payable (BDT)</td><td class="number">{{formatNumber sdPayable}}</td></tr>
+  <tr><td class="label">VDS Credit (BDT)</td><td class="number">{{formatNumber vdsCredit}}</td></tr>
+  <tr class="total"><td class="label">Net VAT Payable (BDT)</td><td class="number">{{formatNumber netPayable}}</td></tr>
+</table>
+{{/if}}
+
+{{#if isVatPayable}}
+<table>
+  <thead>
+    <tr>
+      <th>VAT Rate (%)</th>
+      <th>Taxable Value</th>
+      <th>SD Amount</th>
+      <th>VAT Amount</th>
+      <th>Invoice Count</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each bands}}
+    <tr>
+      <td class="number">{{vatRate}}</td>
+      <td class="number">{{formatNumber taxableValue}}</td>
+      <td class="number">{{formatNumber sdAmount}}</td>
+      <td class="number">{{formatNumber vatAmount}}</td>
+      <td class="number">{{invoiceCount}}</td>
+    </tr>
+    {{/each}}
+    {{#unless bands.length}}
+    <tr><td colspan="5" class="empty">No invoices for this month</td></tr>
+    {{/unless}}
+  </tbody>
+</table>
+{{/if}}
+
+{{#if showInvoiceSummary}}
+<table>
+  <thead>
+    <tr>
+      <th>VAT Rate (%)</th>
+      <th>Taxable Value</th>
+      <th>SD Amount</th>
+      <th>VAT Amount</th>
+      <th>Specific Duty</th>
+      <th>Grand Total</th>
+      <th>Invoice Count</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each rows}}
+    <tr>
+      <td class="number">{{vatRate}}</td>
+      <td class="number">{{formatNumber taxableValue}}</td>
+      <td class="number">{{formatNumber sdAmount}}</td>
+      <td class="number">{{formatNumber vatAmount}}</td>
+      <td class="number">{{formatNumber specificDutyAmount}}</td>
+      <td class="number">{{formatNumber grandTotal}}</td>
+      <td class="number">{{invoiceCount}}</td>
+    </tr>
+    {{/each}}
+    {{#unless rows.length}}
+    <tr><td colspan="7" class="empty">No invoices for this month</td></tr>
+    {{/unless}}
+    {{#if rows.length}}
+    <tr class="total">
+      <td class="label">TOTAL</td>
+      <td class="number">{{formatNumber totals.taxableValue}}</td>
+      <td class="number">{{formatNumber totals.sdAmount}}</td>
+      <td class="number">{{formatNumber totals.vatAmount}}</td>
+      <td class="number">{{formatNumber totals.specificDutyAmount}}</td>
+      <td class="number">{{formatNumber totals.grandTotal}}</td>
+      <td></td>
+    </tr>
+    {{/if}}
+  </tbody>
+</table>
+{{/if}}
+
+{{#if isVdsSummary}}
+<table>
+  <tr><th colspan="2">VDS Certificate Summary</th></tr>
+  <tr><td class="label">Certificates (non-cancelled)</td><td class="number">{{certificateCount}}</td></tr>
+  <tr><td class="label">Total Deducted (BDT)</td><td class="number">{{formatNumber totalDeducted}}</td></tr>
+  <tr><td class="label">Total Deposited (BDT)</td><td class="number">{{formatNumber totalDeposited}}</td></tr>
+  <tr class="total"><td class="label">Total Pending (BDT)</td><td class="number">{{formatNumber totalPending}}</td></tr>
+</table>
+{{/if}}
+
+</body>
+</html>
