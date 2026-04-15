@@ -13,7 +13,7 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-on-surface mb-6 font-headline">Settings</h2>
+      <h2 className="font-headline text-2xl sm:text-3xl font-extrabold tracking-tight text-on-surface mb-6">Settings</h2>
       <Tabs items={items} />
     </div>
   );
