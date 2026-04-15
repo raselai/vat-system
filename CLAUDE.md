@@ -27,6 +27,24 @@ npm run db:seed             # tsx prisma/seed.ts
 npm run db:studio           # prisma studio (GUI)
 ```
 
+## Environment Setup
+
+Create `server/.env` (see `server/.env.example`):
+
+```
+DATABASE_URL="mysql://root:password@localhost:3306/vat_system"
+JWT_SECRET="..."
+JWT_REFRESH_SECRET="..."
+JWT_EXPIRES_IN="15m"
+JWT_REFRESH_EXPIRES_IN="7d"
+PORT=4000
+NODE_ENV=development
+CORS_ORIGIN="http://localhost:5173"
+BACKUP_DIR="./backups"
+```
+
+`VITE_API_URL` in the client is optional — dev uses the Vite proxy (`/api` forwarded to `http://localhost:4000`, path unchanged). Set it only when the client is deployed without the proxy (e.g., production build pointing at the API server directly).
+
 ## Architecture
 
 Monorepo with two packages — `client/` (React SPA) and `server/` (Express API). No shared code package; the VAT calculation engine is duplicated in both (`server/src/services/vatCalc.service.ts` and `client/src/utils/vatCalc.ts`) and must be kept in sync manually.
@@ -60,9 +78,9 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 - **Stack**: React 18 + Vite + TypeScript + Ant Design 5 + Tailwind CSS
 - **Design system**: "Sovereign Ledger" branding — green primary (`#00503a`), Plus Jakarta Sans headlines, Inter body, Material Symbols Outlined icons. Color tokens in `tailwind.config.js` using M3 palette
 - **Auth flow**: `AuthContext` manages JWT tokens in localStorage. `ProtectedRoute` wraps authenticated routes
-- **Company context**: `CompanyContext` tracks the active company. `client/src/services/api.ts` auto-attaches `Authorization` and `x-company-id` headers on every request via axios interceptors
+- **Company context**: `CompanyContext` tracks the active company. `client/src/services/api.ts` auto-attaches `Authorization` and `x-company-id` headers on every request via axios interceptors. Both tokens and the active company ID are stored in `localStorage` (`accessToken`, `refreshToken`, `activeCompanyId`). The interceptor also handles silent token refresh on 401.
 - **Routing**: React Router v7. `AppLayout` provides sidebar + header shell; pages render via `<Outlet />`
-- **Vite proxy**: `/api` → `http://localhost:4000`
+- **Vite proxy**: `/api` forwarded to `http://localhost:4000` with no path rewrite — client service calls use paths like `/api/v1/invoices`
 - **Tailwind + Ant Design**: Tailwind preflight disabled (`corePlugins.preflight: false`). Ant Design table overrides in `client/src/index.css`
 - **Static assets**: `client/Image/` — government logo (`Logo.png`) used in challan preview. Import with `import logoUrl from '../../Image/Logo.png'` (Vite handles hashing). `vite-env.d.ts` already includes image type declarations
 
@@ -101,6 +119,29 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 - `audit_logs` table is append-only (no FK constraints, no `updatedAt`). Never UPDATE or DELETE rows
 - `GET /audit-logs?userId=&method=&from=&to=&page=&limit=` — company-scoped, paginated (default 50, max 100), readable by both roles
 
+### Reports API (`/api/v1/reports`)
+
+Server-side aggregation for five tax-month-scoped report types. Middleware chain: `authenticate → companyScope` only (read-only; no `auditLog`).
+
+- `GET /reports/vat-summary?taxMonth=YYYY-MM` — top-level overview: output VAT, input VAT, SD payable, VDS credit, net payable, invoice counts. Used by both the Dashboard KPI cards and the Reports page.
+- `GET /reports/vat-payable` — output VAT broken down by VAT rate band (sales invoices only)
+- `GET /reports/sales-summary` / `GET /reports/purchase-summary` — per-rate-band totals with grand total row
+- `GET /reports/vds-summary` — deductor certificate count + deducted / deposited / pending amounts
+- `GET /reports/:type/pdf` and `GET /reports/:type/xlsx` — export the same data as file download
+
+`:type` is validated against the five allowed values. All monetary aggregations call `.toNumber()` on Prisma `Decimal` results before serializing. Queries hit `invoices`/`invoice_items` directly — no dependency on register or return tables.
+
+Client: `client/src/services/reports.service.ts` wraps all five JSON endpoints plus `downloadReport()` for exports. The Dashboard replaces its bulk `/products` + `/customers` + `/invoices` fetch with `getVatSummary(currentTaxMonth)` + `/invoices`.
+
+### Backup Module (`/api/v1/backup`)
+
+- **Admin-only** — all routes require `authenticate` + `companyScope` + `requireRole('admin')` + `auditLog`
+- **Storage**: `mysqldump --single-transaction` piped through gzip → `$BACKUP_DIR/<YYYY-MM-DD_HH-mm>.sql.gz` (default `./backups/`). Requires `mysqldump` in `PATH` on the host
+- **Retention**: 30 days. `cleanOldBackups()` runs after each scheduled or triggered backup
+- **Scheduler**: daily at 2:00 AM Asia/Dhaka via `node-cron` (`startBackupScheduler()` in `server/src/index.ts`, skipped on Vercel)
+- **Routes**: `POST /trigger` (manual run), `GET /list`, `GET /download/:filename` (filename validated against `YYYY-MM-DD_HH-mm.sql.gz` regex to prevent path traversal)
+- **Env vars**: `BACKUP_DIR` (path), `DATABASE_URL` (parsed to extract host/port/user/password/database)
+
 ### Key Data Flow
 
 ```
@@ -120,6 +161,11 @@ Register → Return flow:
   → POST /returns/generate  (snapshots totals + VDS credits into VatReturn row)
   → Admin adjusts → review → submit → lock
   → PDF (Musak 9.1) or NBR Filing Guide PDF
+
+Reports:
+  GET /reports/vat-summary?taxMonth=  (used by Dashboard KPI cards)
+  GET /reports/<type>?taxMonth=        (used by ReportsPage tabs)
+  GET /reports/<type>/pdf|xlsx         (file download, same underlying query)
 
 Audit:
   Any mutating request → auditLog middleware → append to audit_logs
@@ -157,6 +203,10 @@ Non-negotiable — from NBR (National Board of Revenue) regulations:
 - UI components: Ant Design for data display (Table, Form, Select, Descriptions); Tailwind for layout and spacing
 - Icons: Material Symbols Outlined (Google Fonts CDN in `index.html`) — not Ant Design icons
 
-## Not Yet Implemented
+## Shared Domain Utilities (`server/src/utils/validators.ts`)
 
-- Backup scheduler (defined in PRD.pdf)
+Non-Prisma domain helpers used across services:
+
+- `isValidBin(bin)` — returns true if exactly 13 numeric digits
+- `getFiscalYear(date)` — returns `"YYYY-YYYY"` string (July-origin fiscal year)
+- `getTaxMonth(date)` — returns `"YYYY-MM"` string
