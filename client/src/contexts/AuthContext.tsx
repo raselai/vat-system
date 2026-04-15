@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (fullName: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (patch: Partial<User>) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -73,8 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCompanies([]);
   }, []);
 
+  const updateUser = useCallback((patch: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...patch } : prev);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, companies, isAuthenticated, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, companies, isAuthenticated, isLoading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
