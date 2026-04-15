@@ -94,16 +94,20 @@ export async function updateMe(req: Request, res: Response) {
 
   const { fullName, email } = parsed.data;
 
-  const existing = await prisma.user.findFirst({
-    where: { email, NOT: { id: BigInt(req.user.userId) } },
-  });
-  if (existing) return error(res, 'Email is already in use by another account');
+  try {
+    const existing = await prisma.user.findFirst({
+      where: { email, NOT: { id: BigInt(req.user.userId) } },
+    });
+    if (existing) return error(res, 'Email is already in use by another account');
 
-  const updated = await prisma.user.update({
-    where: { id: BigInt(req.user.userId) },
-    data: { fullName, email },
-    select: { id: true, fullName: true, email: true, status: true },
-  });
+    const updated = await prisma.user.update({
+      where: { id: BigInt(req.user.userId) },
+      data: { fullName, email },
+      select: { id: true, fullName: true, email: true, status: true },
+    });
 
-  return success(res, { user: { ...updated, id: updated.id.toString() } });
+    return success(res, { user: { ...updated, id: updated.id.toString() } });
+  } catch (err: any) {
+    return error(res, err.message ?? 'Internal server error');
+  }
 }
