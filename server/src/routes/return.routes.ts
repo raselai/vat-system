@@ -2,21 +2,26 @@ import { Router } from 'express';
 import * as returnController from '../controllers/return.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { companyScope } from '../middleware/companyScope.middleware';
+import { requireRole } from '../middleware/rbac.middleware';
 import { auditLog } from '../middleware/auditLog.middleware';
 
 const router = Router();
 
-router.use(authenticate, companyScope, auditLog);
+router.use(authenticate, companyScope);
 
-// Specific action routes BEFORE parameterized routes
-router.post('/generate', returnController.generateReturn);
+// Read-only — all roles
 router.get('/', returnController.listReturns);
-router.post('/:id/review', returnController.reviewReturn);
-router.post('/:id/submit', returnController.submitReturn);
-router.post('/:id/lock', returnController.lockReturn);
-router.get('/:id/pdf', returnController.getReturnPdf);
-router.get('/:id/nbr-export', returnController.nbrExport);
 router.get('/:id', returnController.getReturn);
-router.put('/:id', returnController.updateReturn);
+router.get('/:id/pdf', returnController.getReturnPdf);
+
+// Draft-level mutations — all roles
+router.post('/generate', auditLog, returnController.generateReturn);
+router.put('/:id', auditLog, returnController.updateReturn);
+
+// Admin-only: status transitions beyond draft + NBR export
+router.post('/:id/review', requireRole('admin'), auditLog, returnController.reviewReturn);
+router.post('/:id/submit', requireRole('admin'), auditLog, returnController.submitReturn);
+router.post('/:id/lock', requireRole('admin'), auditLog, returnController.lockReturn);
+router.get('/:id/nbr-export', requireRole('admin'), returnController.nbrExport);
 
 export default router;

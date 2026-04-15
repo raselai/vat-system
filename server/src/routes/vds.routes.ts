@@ -2,29 +2,34 @@ import { Router } from 'express';
 import * as vdsController from '../controllers/vds.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { companyScope } from '../middleware/companyScope.middleware';
+import { requireRole } from '../middleware/rbac.middleware';
 import { auditLog } from '../middleware/auditLog.middleware';
 
 const router = Router();
 
-router.use(authenticate, companyScope, auditLog);
+router.use(authenticate, companyScope);
 
-// Certificates
+// Certificates — read-only for all roles
 router.get('/certificates', vdsController.listCertificates);
-router.post('/certificates', vdsController.createCertificate);
 router.get('/certificates/:id', vdsController.getCertificate);
-router.put('/certificates/:id', vdsController.updateCertificate);
-router.post('/certificates/:id/finalize', vdsController.finalizeCertificate);
-router.post('/certificates/:id/cancel', vdsController.cancelCertificate);
 router.get('/certificates/:id/pdf', vdsController.getCertificatePdf);
-router.post('/certificates/from-invoice/:invoiceId', vdsController.createFromInvoice);
 
-// Treasury Deposits
+// Certificates — mutations: admin only
+router.post('/certificates', requireRole('admin'), auditLog, vdsController.createCertificate);
+router.put('/certificates/:id', requireRole('admin'), auditLog, vdsController.updateCertificate);
+router.post('/certificates/:id/finalize', requireRole('admin'), auditLog, vdsController.finalizeCertificate);
+router.post('/certificates/:id/cancel', requireRole('admin'), auditLog, vdsController.cancelCertificate);
+router.post('/certificates/from-invoice/:invoiceId', requireRole('admin'), auditLog, vdsController.createFromInvoice);
+
+// Treasury Deposits — read-only for all roles
 router.get('/deposits', vdsController.listDeposits);
-router.post('/deposits', vdsController.createDeposit);
 router.get('/deposits/:id', vdsController.getDeposit);
-router.put('/deposits/:id', vdsController.updateDeposit);
-router.post('/deposits/:id/mark-deposited', vdsController.markDeposited);
-router.post('/deposits/:id/link-certificates', vdsController.linkCertificates);
+
+// Treasury Deposits — mutations: admin only
+router.post('/deposits', requireRole('admin'), auditLog, vdsController.createDeposit);
+router.put('/deposits/:id', requireRole('admin'), auditLog, vdsController.updateDeposit);
+router.post('/deposits/:id/mark-deposited', requireRole('admin'), auditLog, vdsController.markDeposited);
+router.post('/deposits/:id/link-certificates', requireRole('admin'), auditLog, vdsController.linkCertificates);
 
 // Summary
 router.get('/summary', vdsController.getSummary);
