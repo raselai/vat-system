@@ -285,3 +285,63 @@ export interface AuditLogListResult {
   page: number;
   limit: number;
 }
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+export interface VatSummary {
+  taxMonth: string;
+  salesCount: number;
+  purchaseCount: number;
+  totalSalesValue: number;
+  totalPurchaseValue: number;
+  outputVat: number;
+  inputVat: number;
+  sdPayable: number;
+  vdsCredit: number;
+  netPayable: number;
+}
+
+export interface VatBand {
+  vatRate: number;
+  taxableValue: number;
+  sdAmount: number;
+  vatAmount: number;
+  invoiceCount: number;
+}
+
+export interface VatPayable {
+  taxMonth: string;
+  bands: VatBand[];
+}
+
+export interface SummaryRow {
+  vatRate: number;
+  taxableValue: number;
+  sdAmount: number;
+  vatAmount: number;
+  specificDutyAmount: number;
+  grandTotal: number;
+  invoiceCount: number;
+}
+
+export interface SummaryTotals {
+  taxableValue: number;
+  sdAmount: number;
+  vatAmount: number;
+  specificDutyAmount: number;
+  grandTotal: number;
+}
+
+export interface InvoiceSummary {
+  taxMonth: string;
+  rows: SummaryRow[];
+  totals: SummaryTotals;
+}
+
+export interface ReportVdsSummary {
+  taxMonth: string;
+  certificateCount: number;
+  totalDeducted: number;
+  totalDeposited: number;
+  totalPending: number;
+}

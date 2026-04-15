@@ -5,7 +5,8 @@ import dayjs from 'dayjs';
 import { useCompany } from '../contexts/CompanyContext';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
-import type { Invoice, Product, Customer } from '../types';
+import { getVatSummary } from '../services/reports.service';
+import type { Invoice, VatSummary } from '../types';
 
 /* ═══════════ Helpers ═══════════ */
 
@@ -42,24 +43,19 @@ const daysUntilDeadline = () => {
 /* ═══════════ Types ═══════════ */
 
 interface Stats {
-  totalProducts: number;
-  totalCustomers: number;
   invoices: Invoice[];
   salesInvoices: Invoice[];
   purchaseInvoices: Invoice[];
-  totalSales: number;
-  totalPurchases: number;
-  outputVat: number;
-  inputVat: number;
   draftCount: number;
   approvedCount: number;
 }
 
 const emptyStats: Stats = {
-  totalProducts: 0, totalCustomers: 0, invoices: [],
-  salesInvoices: [], purchaseInvoices: [],
-  totalSales: 0, totalPurchases: 0, outputVat: 0, inputVat: 0,
-  draftCount: 0, approvedCount: 0,
+  invoices: [],
+  salesInvoices: [],
+  purchaseInvoices: [],
+  draftCount: 0,
+  approvedCount: 0,
 };
 
 const statusConfig: Record<string, { color: string; bgClass: string; label: string }> = {
@@ -87,33 +83,28 @@ export default function Dashboard() {
   useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [vatData, setVatData] = useState<VatSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!activeCompany) { setLoading(false); return; }
     setLoading(true);
 
+    const currentTaxMonth = dayjs().format('YYYY-MM');
+
     Promise.all([
-      api.get('/products').catch(() => ({ data: { data: [] } })),
-      api.get('/customers').catch(() => ({ data: { data: [] } })),
+      getVatSummary(currentTaxMonth).catch(() => null),
       api.get('/invoices').catch(() => ({ data: { data: [] } })),
-    ]).then(([pRes, cRes, iRes]) => {
-      const products: Product[] = pRes.data.data || [];
-      const customers: Customer[] = cRes.data.data || [];
+    ]).then(([vat, iRes]) => {
       const invoices: Invoice[] = iRes.data.data || [];
       const sales = invoices.filter(i => i.invoiceType === 'sales');
       const purchases = invoices.filter(i => i.invoiceType === 'purchase');
 
+      setVatData(vat);
       setStats({
-        totalProducts: products.length,
-        totalCustomers: customers.length,
         invoices,
         salesInvoices: sales,
         purchaseInvoices: purchases,
-        totalSales: sales.reduce((acc, i) => acc + Number(i.grandTotal || 0), 0),
-        totalPurchases: purchases.reduce((acc, i) => acc + Number(i.grandTotal || 0), 0),
-        outputVat: sales.reduce((acc, i) => acc + Number(i.vatTotal || 0), 0),
-        inputVat: purchases.reduce((acc, i) => acc + Number(i.vatTotal || 0), 0),
         draftCount: invoices.filter(i => i.status === 'draft').length,
         approvedCount: invoices.filter(i => i.status === 'approved' || i.status === 'locked').length,
       });
@@ -149,8 +140,10 @@ export default function Dashboard() {
   }
 
   const s = stats ?? emptyStats;
-  const netVat = s.outputVat - s.inputVat;
   const recent = s.invoices.slice(0, 5);
+  const outputVat = vatData?.outputVat ?? 0;
+  const inputVat = vatData?.inputVat ?? 0;
+  const netPayable = vatData?.netPayable ?? 0;
   const deadlineDays = daysUntilDeadline();
 
   /* ─── Table columns ─── */
@@ -243,10 +236,10 @@ export default function Dashboard() {
           {/* Output VAT */}
           <div className="bg-surface-container-low p-5 rounded-2xl relative overflow-hidden group">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Output VAT</p>
-            <h3 className="font-headline text-2xl lg:text-3xl font-black text-on-surface mb-1">{`৳ ${fmt(s.outputVat)}`}</h3>
+            <h3 className="font-headline text-2xl lg:text-3xl font-black text-on-surface mb-1">{`৳ ${fmt(outputVat)}`}</h3>
             <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
               <M name="trending_up" className="text-sm" />
-              <span>{s.salesInvoices.length} sales</span>
+              <span>{vatData?.salesCount ?? s.salesInvoices.length} sales</span>
             </div>
             <div className="absolute -right-3 -bottom-3 opacity-[0.04] group-hover:scale-110 transition-transform duration-700">
               <M name="receipt" className="text-[80px]" />
@@ -256,17 +249,17 @@ export default function Dashboard() {
           {/* Input VAT */}
           <div className="bg-surface-container-low p-5 rounded-2xl relative overflow-hidden group">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Input Tax Credit</p>
-            <h3 className="font-headline text-2xl lg:text-3xl font-black text-on-surface mb-1">{`৳ ${fmt(s.inputVat)}`}</h3>
+            <h3 className="font-headline text-2xl lg:text-3xl font-black text-on-surface mb-1">{`৳ ${fmt(inputVat)}`}</h3>
             <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
               <M name="trending_down" className="text-sm" />
-              <span>{s.purchaseInvoices.length} purchases</span>
+              <span>{vatData?.purchaseCount ?? s.purchaseInvoices.length} purchases</span>
             </div>
           </div>
 
           {/* Net VAT — Featured */}
           <div className="bg-primary text-on-primary p-5 rounded-2xl shadow-xl shadow-primary/20 relative">
             <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mb-3">Net VAT Payable</p>
-            <h3 className="font-headline text-2xl lg:text-3xl font-black mb-1">{`৳ ${fmt(Math.max(0, netVat))}`}</h3>
+            <h3 className="font-headline text-2xl lg:text-3xl font-black mb-1">{`৳ ${fmt(Math.max(0, netPayable))}`}</h3>
             <p className="text-[10px] font-medium opacity-60 leading-snug">After input credit &amp; VDS rebates</p>
             <span className="inline-block mt-3 px-2 py-0.5 bg-white/10 rounded text-[10px] font-bold">CURRENT BALANCE</span>
           </div>
@@ -381,7 +374,7 @@ export default function Dashboard() {
                 {([
                   { label: 'System Setup', sub: 'Master Data & Roles', done: true },
                   { label: 'Invoices', sub: `${s.salesInvoices.length} Sales / ${s.purchaseInvoices.length} Purchases`, done: true },
-                  { label: 'Master Data', sub: `${s.totalProducts} Products, ${s.totalCustomers} Customers`, done: true },
+                  { label: 'VAT Recorded', sub: `Output ৳${fmt(outputVat)} · Input ৳${fmt(inputVat)}`, done: true },
                 ]).map((item) => (
                   <div key={item.label} className="relative pl-5">
                     <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#9ef4d0] rounded-full" />
@@ -430,11 +423,11 @@ export default function Dashboard() {
               </h4>
               <div className="space-y-2.5">
                 {([
-                  { label: 'Total Sales',      value: `৳ ${fmt(s.totalSales)}`,     icon: 'trending_up',    ic: 'text-[#00503a]' },
-                  { label: 'Total Purchases',  value: `৳ ${fmt(s.totalPurchases)}`, icon: 'trending_down',  ic: 'text-[#584200]' },
-                  { label: 'Output VAT',       value: `৳ ${fmt(s.outputVat)}`,      icon: 'receipt',        ic: 'text-[#00503a]' },
-                  { label: 'Input VAT Credit', value: `৳ ${fmt(s.inputVat)}`,       icon: 'credit_card',    ic: 'text-[#465f88]' },
-                  { label: 'Fiscal Year',      value: fiscalYear(),                  icon: 'calendar_month', ic: 'text-slate-500' },
+                  { label: 'Total Sales',      value: `৳ ${fmt(vatData?.totalSalesValue ?? 0)}`,    icon: 'trending_up',    ic: 'text-[#00503a]' },
+                  { label: 'Total Purchases',  value: `৳ ${fmt(vatData?.totalPurchaseValue ?? 0)}`, icon: 'trending_down',  ic: 'text-[#584200]' },
+                  { label: 'Output VAT',       value: `৳ ${fmt(outputVat)}`,                        icon: 'receipt',        ic: 'text-[#00503a]' },
+                  { label: 'Input VAT Credit', value: `৳ ${fmt(inputVat)}`,                         icon: 'credit_card',    ic: 'text-[#465f88]' },
+                  { label: 'Fiscal Year',      value: fiscalYear(),                                  icon: 'calendar_month', ic: 'text-slate-500' },
                 ]).map((row) => (
                   <div key={row.label} className="flex justify-between items-center py-1">
                     <div className="flex items-center gap-2 min-w-0">
