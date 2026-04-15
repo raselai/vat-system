@@ -26,6 +26,7 @@ import ReturnDetail from './pages/returns/ReturnDetail';
 import AuditLogPage from './pages/audit/AuditLogPage';
 import ImportExportPage from './pages/importExport/ImportExportPage';
 import ReportsPage from './pages/reports/ReportsPage';
+import SettingsPage from './pages/settings/SettingsPage';
 
 function App() {
   return (
@@ -67,6 +68,7 @@ function App() {
           <Route path="audit-logs" element={<AuditLogPage />} />
           <Route path="import-export" element={<ImportExportPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
