@@ -10,5 +10,6 @@ router.post('/login', auditLog, authController.login);
 router.post('/refresh', auditLog, authController.refresh);
 router.post('/logout', auditLog, authController.logout);
 router.get('/me', authenticate, authController.me);
+router.put('/me', authenticate, auditLog, authController.updateMe);
 
 export default router;

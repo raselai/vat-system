@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import * as authService from '../services/auth.service';
-import { registerSchema, loginSchema, refreshSchema } from '../validators/auth.validator';
+import { registerSchema, loginSchema, refreshSchema, updateMeSchema } from '../validators/auth.validator';
 import { success, created, error, unauthorized } from '../utils/response';
 import prisma from '../utils/prisma';
 
@@ -82,4 +82,28 @@ export async function me(req: Request, res: Response) {
       role: uc.role,
     })),
   });
+}
+
+export async function updateMe(req: Request, res: Response) {
+  if (!req.user) return unauthorized(res);
+
+  const parsed = updateMeSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return error(res, parsed.error.errors.map(e => e.message).join(', '));
+  }
+
+  const { fullName, email } = parsed.data;
+
+  const existing = await prisma.user.findFirst({
+    where: { email, NOT: { id: BigInt(req.user.userId) } },
+  });
+  if (existing) return error(res, 'Email is already in use by another account');
+
+  const updated = await prisma.user.update({
+    where: { id: BigInt(req.user.userId) },
+    data: { fullName, email },
+    select: { id: true, fullName: true, email: true, status: true },
+  });
+
+  return success(res, { user: { ...updated, id: updated.id.toString() } });
 }
