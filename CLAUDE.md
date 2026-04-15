@@ -57,7 +57,7 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 - **Middleware chain** (applied per route): `authenticate` → `companyScope` → `rbac` (where needed) → `auditLog` → route handler
   - `authenticate` — verifies Bearer token, sets `req.user`
   - `companyScope` — reads `x-company-id` header, validates user membership, sets `req.companyId` and `req.companyRole`
-  - `rbac` — checks `req.companyRole` against required role
+  - `rbac` — `requireRole('admin')` from `server/src/middleware/rbac.middleware.ts`. Applied **per-route** (not `router.use()`) so read endpoints stay open to both roles while mutations are gated. Pattern: `router.post('/x', requireRole('admin'), auditLog, handler)`
   - `auditLog` — fire-and-forget write on `res.on('finish')` for mutating methods
 - **Validation**: Zod schemas in `server/src/validators/` — always validated before controller logic
 - **API pattern**: All responses use `{ success: boolean, data?: T, error?: string }` via helpers in `server/src/utils/response.ts` (`success()`, `error()`, `notFound()`, `unauthorized()`, `forbidden()`)
@@ -77,7 +77,7 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 
 - **Stack**: React 18 + Vite + TypeScript + Ant Design 5 + Tailwind CSS
 - **Design system**: "Sovereign Ledger" branding — green primary (`#00503a`), Plus Jakarta Sans headlines, Inter body, Material Symbols Outlined icons. Color tokens in `tailwind.config.js` using M3 palette
-- **Auth flow**: `AuthContext` manages JWT tokens in localStorage. `ProtectedRoute` wraps authenticated routes
+- **Auth flow**: `AuthContext` manages JWT tokens in localStorage. `ProtectedRoute` wraps authenticated routes. `AuthContext` exposes `updateUser(patch: Partial<User>)` to sync state after profile edits without a re-fetch
 - **Company context**: `CompanyContext` tracks the active company. `client/src/services/api.ts` auto-attaches `Authorization` and `x-company-id` headers on every request via axios interceptors. Both tokens and the active company ID are stored in `localStorage` (`accessToken`, `refreshToken`, `activeCompanyId`). The interceptor also handles silent token refresh on 401.
 - **Routing**: React Router v7. `AppLayout` provides sidebar + header shell; pages render via `<Outlet />`
 - **Vite proxy**: `/api` forwarded to `http://localhost:4000` with no path rewrite — client service calls use paths like `/api/v1/invoices`
@@ -90,6 +90,7 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 - **Treasury Deposits**: Linked to certificates via `vds_certificate_deposits` junction table. Status: `pending` → `deposited` → `verified`
 - **Certificate numbering**: `VDS-{fiscal_year}-{sequential}` per company
 - **Monthly summary**: `GET /summary?taxMonth=YYYY-MM` aggregates deducted vs deposited amounts
+- **RBAC**: GET endpoints (list, get, pdf, summary) — any role. All POSTs and PUTs — `requireRole('admin')`
 
 ### Sales/Purchase Register (`/api/v1/registers`)
 
@@ -101,7 +102,8 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 ### Monthly Return (`/api/v1/returns`)
 
 - **Generation**: `POST /returns/generate` aggregates non-cancelled invoices and finalized deductee VDS certificates for the `taxMonth`, computes net payable, saves as `draft`. Re-generation blocked once status is `reviewed`/`submitted`/`locked`
-- **Status flow**: `draft` → `reviewed` → `submitted` → `locked`. Admin-only beyond `draft`. No backward transitions
+- **Status flow**: `draft` → `reviewed` → `submitted` → `locked`. No backward transitions
+- **RBAC**: `generate`, `update`, and all GETs — any role. `review`, `submit`, `lock`, `nbr-export` — `requireRole('admin')`
 - **Net payable**: `outputVat + sdPayable − inputVat − vdsCredit − carryForward + increasingAdj − decreasingAdj`
 - **24-section JSON**: `musak91Json` field stores all sections; sections 11–24 are zero placeholders for future NBR schema extension
 - **NBR Filing Guide**: `GET /returns/:id/nbr-export` returns a PDF filing cheat sheet the accountant uses while manually entering data into vat.gov.bd. Contains pre-filing checklist, portal field mapping for Part 3 (Sales) and Part 4 (Purchases), net payable box, and supporting document list. Admin-only. The NBR portal (vat.gov.bd) requires manual data entry — no file upload API exists
@@ -141,6 +143,11 @@ Client: `client/src/services/reports.service.ts` wraps all five JSON endpoints p
 - **Scheduler**: daily at 2:00 AM Asia/Dhaka via `node-cron` (`startBackupScheduler()` in `server/src/index.ts`, skipped on Vercel)
 - **Routes**: `POST /trigger` (manual run), `GET /list`, `GET /download/:filename` (filename validated against `YYYY-MM-DD_HH-mm.sql.gz` regex to prevent path traversal)
 - **Env vars**: `BACKUP_DIR` (path), `DATABASE_URL` (parsed to extract host/port/user/password/database)
+
+### Settings (`/api/v1/auth/me`, client: `/settings`)
+
+- `PUT /api/v1/auth/me` — update `fullName` and `email` for the logged-in user. `authenticate` only (no company scope). Checks email uniqueness, wraps DB calls in try/catch.
+- Client page `client/src/pages/settings/SettingsPage.tsx` — tabbed layout: **Profile** tab (all roles, edits name + email, calls `PUT /auth/me`), **Company** tab (admin only, edits name/address/challanPrefix/fiscalYearStart with BIN read-only, calls `PUT /companies/:id`). Tab is hidden entirely for operators — not just disabled.
 
 ### Key Data Flow
 
