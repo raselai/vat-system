@@ -6,6 +6,7 @@ import AppLayout from './components/AppLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import LandingPage from './pages/LandingPage';
 import CompanyList from './pages/companies/CompanyList';
 import CompanyForm from './pages/companies/CompanyForm';
 import ProductList from './pages/products/ProductList';
@@ -32,6 +33,7 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
@@ -44,7 +46,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="companies" element={<CompanyList />} />
           <Route path="companies/new" element={<CompanyForm />} />
           <Route path="companies/:id/edit" element={<CompanyForm />} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Table, Spin } from 'antd';
+import { Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useCompany } from '../contexts/CompanyContext';
@@ -8,13 +8,41 @@ import api from '../services/api';
 import { getVatSummary } from '../services/reports.service';
 import type { Invoice, VatSummary } from '../types';
 
-/* ═══════════ Helpers ═══════════ */
+/* ─────────────────────────────────────────────────────────
+   DESIGN.md tokens — "The Sovereign Ledger"
+   Primary: #001d52 (navy)  |  Tertiary: #006a4e (compliance green)
+   Typography: Manrope (Authority) / Inter (Utility)
+   Rules: No 1px dividers · Tonal layering · Ambient shadows
+───────────────────────────────────────────────────────── */
+const D = {
+  primary:        '#001d52',
+  primaryCont:    '#00307e',
+  grad:           'linear-gradient(135deg, #001d52, #00307e)',
+  surface:        '#f7f9fb',
+  surfaceLow:     '#f2f4f6',
+  surfaceMid:     '#eaecef',
+  surfaceBright:  '#ffffff',
+  onSurface:      '#191c1e',   // never 100% black per DESIGN.md
+  onSurfaceVar:   '#44474a',
+  tertiary:       '#006a4e',
+  tertiaryDark:   '#003e28',
+  ambient:        '0 16px 32px rgba(25,28,30,.06)',
+  elevated:       '0 24px 48px rgba(0,29,82,.12)',
+  manrope:        "'Manrope', sans-serif",
+  inter:          "'Inter', sans-serif",
+};
 
-function M({ name, filled, className }: { name: string; filled?: boolean; className?: string }) {
+/* ── Helpers ─────────────────────────────────────────── */
+function Icon({ name, filled, size = '1.2rem', color }: {
+  name: string; filled?: boolean; size?: string; color?: string;
+}) {
   return (
     <span
-      className={`material-symbols-outlined ${className || ''}`}
-      style={filled ? { fontVariationSettings: "'FILL' 1" } : undefined}
+      className="material-symbols-outlined"
+      style={{
+        fontSize: size, lineHeight: 1, display: 'block', color,
+        ...(filled ? { fontVariationSettings: "'FILL' 1" } : {}),
+      }}
     >
       {name}
     </span>
@@ -30,7 +58,7 @@ const fiscalYear = () => {
   return `${y}-${y + 1}`;
 };
 
-const taxPeriod = () => dayjs().format('MMMM YYYY');
+const taxPeriod  = () => dayjs().format('MMMM YYYY');
 
 const daysUntilDeadline = () => {
   const now = dayjs();
@@ -40,91 +68,100 @@ const daysUntilDeadline = () => {
   return Math.max(0, deadline.diff(now, 'day'));
 };
 
-/* ═══════════ Types ═══════════ */
-
+/* ── Types ───────────────────────────────────────────── */
 interface Stats {
-  invoices: Invoice[];
-  salesInvoices: Invoice[];
+  invoices:         Invoice[];
+  salesInvoices:    Invoice[];
   purchaseInvoices: Invoice[];
-  draftCount: number;
-  approvedCount: number;
+  draftCount:       number;
+  approvedCount:    number;
 }
 
 const emptyStats: Stats = {
-  invoices: [],
-  salesInvoices: [],
-  purchaseInvoices: [],
-  draftCount: 0,
-  approvedCount: 0,
+  invoices: [], salesInvoices: [], purchaseInvoices: [],
+  draftCount: 0, approvedCount: 0,
 };
 
-const statusConfig: Record<string, { color: string; bgClass: string; label: string }> = {
-  draft:     { color: '#584200', bgClass: 'bg-[#584200]/10', label: 'DRAFT' },
-  approved:  { color: '#00503a', bgClass: 'bg-[#00503a]/10', label: 'RECORDED' },
-  locked:    { color: '#465f88', bgClass: 'bg-[#465f88]/10', label: 'LOCKED' },
-  cancelled: { color: '#ba1a1a', bgClass: 'bg-[#ba1a1a]/10', label: 'CANCELLED' },
+const statusCfg: Record<string, { color: string; bg: string; label: string }> = {
+  draft:     { color: '#584200', bg: 'rgba(88,66,0,.09)',    label: 'DRAFT'     },
+  approved:  { color: '#003e28', bg: 'rgba(0,62,40,.09)',    label: 'RECORDED'  },
+  locked:    { color: '#001d52', bg: 'rgba(0,29,82,.09)',    label: 'LOCKED'    },
+  cancelled: { color: '#ba1a1a', bg: 'rgba(186,26,26,.09)', label: 'CANCELLED' },
 };
 
-/* ═══════════ Section Label ═══════════ */
+/* ── Micro-components ────────────────────────────────── */
 
-function SectionLabel({ icon, label }: { icon: string; label: string }) {
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <M name={icon} className="text-lg text-slate-400" />
-      <h3 className="font-headline text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</h3>
+    <p style={{
+      fontFamily: D.manrope, fontWeight: 800, fontSize: '.68rem',
+      letterSpacing: '.11em', textTransform: 'uppercase',
+      color: D.onSurfaceVar, marginBottom: '.625rem',
+    }}>
+      {children}
+    </p>
+  );
+}
+
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{
+      background: D.surfaceBright, borderRadius: 20,
+      boxShadow: D.ambient, ...style,
+    }}>
+      {children}
     </div>
   );
 }
 
-/* ═══════════ Dashboard ═══════════ */
-
+/* ── Dashboard ───────────────────────────────────────── */
 export default function Dashboard() {
   const { activeCompany } = useCompany();
   useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats,   setStats]   = useState<Stats   | null>(null);
   const [vatData, setVatData] = useState<VatSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!activeCompany) { setLoading(false); return; }
     setLoading(true);
-
-    const currentTaxMonth = dayjs().format('YYYY-MM');
-
     Promise.all([
-      getVatSummary(currentTaxMonth).catch(() => null),
+      getVatSummary(dayjs().format('YYYY-MM')).catch(() => null),
       api.get('/invoices').catch(() => ({ data: { data: [] } })),
     ]).then(([vat, iRes]) => {
       const invoices: Invoice[] = iRes.data.data || [];
-      const sales = invoices.filter(i => i.invoiceType === 'sales');
+      const sales     = invoices.filter(i => i.invoiceType === 'sales');
       const purchases = invoices.filter(i => i.invoiceType === 'purchase');
-
       setVatData(vat);
       setStats({
         invoices,
-        salesInvoices: sales,
+        salesInvoices:    sales,
         purchaseInvoices: purchases,
-        draftCount: invoices.filter(i => i.status === 'draft').length,
+        draftCount:    invoices.filter(i => i.status === 'draft').length,
         approvedCount: invoices.filter(i => i.status === 'approved' || i.status === 'locked').length,
       });
     }).finally(() => setLoading(false));
   }, [activeCompany]);
 
-  /* ─── Empty state ─── */
+  /* ── Empty state ─────────────────────────────────── */
   if (!activeCompany) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <div className="w-20 h-20 bg-primary/5 rounded-2xl flex items-center justify-center mb-6">
-          <M name="domain_add" className="text-5xl text-primary" />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: '2rem' }}>
+        <div style={{ width: 72, height: 72, background: 'rgba(0,29,82,.06)', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+          <Icon name="domain_add" size="2.5rem" color={D.primary} />
         </div>
-        <h3 className="font-headline text-xl font-bold mb-2 text-on-surface">No Company Selected</h3>
-        <p className="text-slate-500 text-sm mb-6 max-w-xs">Create or select a company from the top bar to begin managing your VAT compliance.</p>
+        <h3 style={{ fontFamily: D.manrope, fontWeight: 800, fontSize: '1.35rem', color: D.onSurface, marginBottom: 8, letterSpacing: '-.02em' }}>
+          No Company Selected
+        </h3>
+        <p style={{ fontFamily: D.inter, fontSize: '.875rem', color: D.onSurfaceVar, marginBottom: 28, maxWidth: '32ch', lineHeight: 1.7 }}>
+          Create or select a company to begin managing your VAT compliance.
+        </p>
         <button
           onClick={() => navigate('/companies/new')}
-          className="bg-primary text-on-primary px-6 py-3 rounded-xl font-headline font-bold text-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+          style={{ background: D.grad, color: '#fff', padding: '.75rem 2rem', borderRadius: '1.5rem', fontFamily: D.manrope, fontWeight: 700, fontSize: '.875rem', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
         >
-          <M name="add" className="text-sm" />
+          <Icon name="add" size=".95rem" color="#fff" />
           Create Company
         </button>
       </div>
@@ -133,329 +170,377 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
         <Spin size="large" />
       </div>
     );
   }
 
-  const s = stats ?? emptyStats;
-  const recent = s.invoices.slice(0, 5);
-  const outputVat = vatData?.outputVat ?? 0;
-  const inputVat = vatData?.inputVat ?? 0;
-  const netPayable = vatData?.netPayable ?? 0;
+  const s           = stats ?? emptyStats;
+  const recent      = s.invoices.slice(0, 6);
+  const outputVat   = vatData?.outputVat   ?? 0;
+  const inputVat    = vatData?.inputVat    ?? 0;
+  const netPayable  = vatData?.netPayable  ?? 0;
   const deadlineDays = daysUntilDeadline();
+  const isUrgent    = deadlineDays <= 5;
 
-  /* ─── Table columns ─── */
-  const columns = [
-    {
-      title: 'Invoice No',
-      dataIndex: 'challanNo',
-      key: 'challanNo',
-      render: (v: string) => <span className="font-bold text-sm text-on-surface">{v}</span>,
-    },
-    {
-      title: 'Date',
-      dataIndex: 'challanDate',
-      key: 'challanDate',
-      responsive: ['sm' as const],
-      render: (d: string) => <span className="text-sm text-slate-600">{dayjs(d).format('DD MMM, YYYY')}</span>,
-    },
-    {
-      title: 'Party',
-      key: 'party',
-      responsive: ['md' as const],
-      render: (_: unknown, record: Invoice) => (
-        <span className="text-sm font-medium text-on-surface">{record.customer?.name || 'Walk-in'}</span>
-      ),
-    },
-    {
-      title: 'VAT',
-      dataIndex: 'vatTotal',
-      key: 'vatTotal',
-      align: 'right' as const,
-      render: (v: number) => <span className="text-sm font-black text-on-surface whitespace-nowrap">{`৳ ${fmt(Number(v))}`}</span>,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      align: 'right' as const,
-      render: (status: string) => {
-        const cfg = statusConfig[status] || statusConfig.draft;
-        return (
-          <span className={`inline-flex items-center gap-1.5 px-2 py-1 ${cfg.bgClass} text-[10px] font-bold rounded`} style={{ color: cfg.color }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.color }} />
-            {cfg.label}
-          </span>
-        );
-      },
-    },
-  ];
-
-  /* ═══════════════════════════════════════════
-     RENDER — structured top-to-bottom sections
-     ═══════════════════════════════════════════ */
-
+  /* ── Render ─────────────────────────────────────── */
   return (
-    <div className="max-w-[1400px] mx-auto space-y-8">
+    <div style={{ maxWidth: 1400, margin: '0 auto', fontFamily: D.inter }}>
 
-      {/* ╔══════════════════════════════════════╗
-         ║  SECTION 1 — Hero Header + Deadline  ║
-         ╚══════════════════════════════════════╝ */}
-      <section>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+      {/* ════════════════════════════════════════════
+          HEADER — editorial asymmetric layout
+          Page title left · Filing deadline right
+          ════════════════════════════════════════════ */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 40, flexWrap: 'wrap', gap: 20 }}>
+        <div>
+          <p style={{ fontFamily: D.manrope, fontWeight: 800, fontSize: '.7rem', letterSpacing: '.12em', textTransform: 'uppercase', color: D.primary, marginBottom: 10 }}>
+            Compliance Dashboard
+          </p>
+          <h1 style={{ fontFamily: D.manrope, fontWeight: 800, fontSize: 'clamp(2rem, 4vw, 3.25rem)', letterSpacing: '-.04em', color: D.onSurface, lineHeight: 1.05, marginBottom: 8 }}>
+            {taxPeriod()}
+          </h1>
+          <p style={{ fontSize: '.875rem', color: D.onSurfaceVar }}>
+            Fiscal Year {fiscalYear()} &middot; {activeCompany.name}
+          </p>
+        </div>
+
+        {/* Filing deadline — ambient floating chip */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 14,
+          padding: '1rem 1.5rem', borderRadius: 16,
+          background: isUrgent ? 'rgba(186,26,26,.05)' : D.surfaceBright,
+          boxShadow: D.ambient,
+        }}>
+          <div style={{ width: 46, height: 46, borderRadius: 13, background: isUrgent ? 'rgba(186,26,26,.08)' : D.surfaceLow, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="event" filled size="1.35rem" color={isUrgent ? '#ba1a1a' : D.primary} />
+          </div>
           <div>
-            <h2 className="font-headline text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-on-surface mb-1">
-              Compliance Dashboard
-            </h2>
-            <p className="text-slate-500 text-sm sm:text-base">
-              VAT auditing for{' '}
-              <span className="text-primary font-semibold">{taxPeriod()}</span> &middot; FY {fiscalYear()}
+            <p style={{ fontFamily: D.manrope, fontSize: '.65rem', fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 3 }}>
+              Musak 9.1 Filing Deadline
+            </p>
+            <p style={{ fontFamily: D.manrope, fontSize: '1.125rem', fontWeight: 800, letterSpacing: '-.025em', color: isUrgent ? '#ba1a1a' : D.onSurface }}>
+              {deadlineDays} days remaining
             </p>
           </div>
-          <div className="bg-primary-container text-on-primary-container px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl flex items-center gap-3 shadow-lg shadow-primary/10 w-full sm:w-auto">
-            <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
-              <M name="event" filled className="text-primary-fixed" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Filing Deadline</p>
-              <p className="text-sm sm:text-base font-bold truncate">{deadlineDays} Days Left (Mushak 9.1)</p>
-            </div>
-          </div>
         </div>
-      </section>
+      </div>
 
-      {/* ╔══════════════════════════════════════╗
-         ║  SECTION 2 — KPI Cards               ║
-         ╚══════════════════════════════════════╝ */}
-      <section>
-        <SectionLabel icon="monitoring" label="Tax Overview" />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
-          {/* Output VAT */}
-          <div className="bg-surface-container-low p-5 rounded-2xl relative overflow-hidden group">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Output VAT</p>
-            <h3 className="font-headline text-2xl lg:text-3xl font-black text-on-surface mb-1">{`৳ ${fmt(outputVat)}`}</h3>
-            <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
-              <M name="trending_up" className="text-sm" />
-              <span>{vatData?.salesCount ?? s.salesInvoices.length} sales</span>
+      {/* ════════════════════════════════════════════
+          KPI CARDS — tonal layering, no borders
+          surface_container_lowest on surface_base
+          Featured card: gradient navy (DESIGN.md)
+          ════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5" style={{ marginBottom: 32 }}>
+        {([
+          {
+            label: 'Output VAT',
+            value: `৳ ${fmt(outputVat)}`,
+            sub: `${vatData?.salesCount ?? s.salesInvoices.length} sales invoices`,
+            icon: 'trending_up',
+            featured: false,
+          },
+          {
+            label: 'Input Tax Credit',
+            value: `৳ ${fmt(inputVat)}`,
+            sub: `${vatData?.purchaseCount ?? s.purchaseInvoices.length} purchases`,
+            icon: 'trending_down',
+            featured: false,
+          },
+          {
+            label: 'Net VAT Payable',
+            value: `৳ ${fmt(Math.max(0, netPayable))}`,
+            sub: 'After input credit & VDS rebates',
+            icon: 'account_balance',
+            featured: true,
+          },
+          {
+            label: 'Total Invoices',
+            value: String(s.invoices.length),
+            sub: `${s.draftCount} draft · ${s.approvedCount} posted`,
+            icon: 'receipt_long',
+            featured: false,
+          },
+        ] as const).map(({ label, value, sub, icon, featured }) => (
+          <div
+            key={label}
+            style={{
+              borderRadius: 20, padding: '1.625rem',
+              background: featured ? D.grad : D.surfaceBright,
+              boxShadow: featured ? '0 24px 60px rgba(0,29,82,.2)' : D.ambient,
+              position: 'relative', overflow: 'hidden',
+            }}
+          >
+            {/* Icon badge */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: featured ? 'rgba(255,255,255,.14)' : D.surfaceLow, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={icon} size="1.1rem" color={featured ? '#fff' : D.primary} />
+              </div>
+              {featured && (
+                <span style={{ padding: '.2rem .625rem', borderRadius: 100, background: 'rgba(255,255,255,.14)', fontFamily: D.manrope, fontSize: '.6rem', fontWeight: 800, letterSpacing: '.06em', color: 'rgba(255,255,255,.8)' }}>
+                  CURRENT PERIOD
+                </span>
+              )}
             </div>
-            <div className="absolute -right-3 -bottom-3 opacity-[0.04] group-hover:scale-110 transition-transform duration-700">
-              <M name="receipt" className="text-[80px]" />
-            </div>
+
+            {/* Label */}
+            <p style={{ fontFamily: D.manrope, fontSize: '.67rem', fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: featured ? 'rgba(255,255,255,.65)' : D.onSurfaceVar, marginBottom: 8 }}>
+              {label}
+            </p>
+
+            {/* Value — display-lg per DESIGN.md "don't be afraid" */}
+            <p style={{ fontFamily: D.manrope, fontWeight: 800, fontSize: 'clamp(1.6rem, 3vw, 2.25rem)', letterSpacing: '-.04em', lineHeight: 1, color: featured ? '#fff' : D.onSurface, marginBottom: 8 }}>
+              {value}
+            </p>
+
+            {/* Sub */}
+            <p style={{ fontSize: '.75rem', color: featured ? 'rgba(255,255,255,.55)' : D.onSurfaceVar, lineHeight: 1.5 }}>
+              {sub}
+            </p>
           </div>
+        ))}
+      </div>
 
-          {/* Input VAT */}
-          <div className="bg-surface-container-low p-5 rounded-2xl relative overflow-hidden group">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Input Tax Credit</p>
-            <h3 className="font-headline text-2xl lg:text-3xl font-black text-on-surface mb-1">{`৳ ${fmt(inputVat)}`}</h3>
-            <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
-              <M name="trending_down" className="text-sm" />
-              <span>{vatData?.purchaseCount ?? s.purchaseInvoices.length} purchases</span>
-            </div>
-          </div>
-
-          {/* Net VAT — Featured */}
-          <div className="bg-primary text-on-primary p-5 rounded-2xl shadow-xl shadow-primary/20 relative">
-            <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mb-3">Net VAT Payable</p>
-            <h3 className="font-headline text-2xl lg:text-3xl font-black mb-1">{`৳ ${fmt(Math.max(0, netPayable))}`}</h3>
-            <p className="text-[10px] font-medium opacity-60 leading-snug">After input credit &amp; VDS rebates</p>
-            <span className="inline-block mt-3 px-2 py-0.5 bg-white/10 rounded text-[10px] font-bold">CURRENT BALANCE</span>
-          </div>
-
-          {/* Invoice Summary */}
-          <div className="bg-surface-container-low p-5 rounded-2xl">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Invoices</p>
-            <h3 className="font-headline text-2xl lg:text-3xl font-black text-on-surface mb-1">{s.invoices.length}</h3>
-            <div className="flex items-center gap-1.5 text-tertiary font-bold text-xs">
-              <M name="pending_actions" className="text-sm" />
-              <span>{s.draftCount} draft &middot; {s.approvedCount} approved</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ╔══════════════════════════════════════╗
-         ║  SECTION 3 — Quick Actions            ║
-         ╚══════════════════════════════════════╝ */}
-      <section>
-        <SectionLabel icon="bolt" label="Quick Actions" />
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+      {/* ════════════════════════════════════════════
+          QUICK ACTIONS — horizontal pill strip
+          surface_bright cards, ambient shadows
+          ════════════════════════════════════════════ */}
+      <div style={{ marginBottom: 32 }}>
+        <Eyebrow>Quick Actions</Eyebrow>
+        <div className="flex flex-wrap gap-3">
           {([
-            { icon: 'add_notes',   label: 'New Invoice',  sub: 'Musak 6.3', path: '/invoices/new',  bgIcon: 'bg-[#00503a]/5',  textIcon: 'text-[#00503a]' },
-            { icon: 'inventory_2', label: 'Add Product',  sub: 'পণ্য যোগ',     path: '/products/new', bgIcon: 'bg-[#465f88]/5',  textIcon: 'text-[#465f88]' },
-            { icon: 'group_add',   label: 'Add Customer', sub: 'গ্রাহক যোগ',    path: '/customers/new', bgIcon: 'bg-[#584200]/5', textIcon: 'text-[#584200]' },
-          ]).map((a) => (
+            { icon: 'add_notes',   label: 'New Invoice',  sub: 'Musak 6.3', path: '/invoices/new'  },
+            { icon: 'inventory_2', label: 'Add Product',  sub: 'Inventory',  path: '/products/new'  },
+            { icon: 'group_add',   label: 'Add Customer', sub: 'Contacts',   path: '/customers/new' },
+            { icon: 'summarize',   label: 'View Reports', sub: 'Analytics',  path: '/reports'       },
+          ]).map(a => (
             <button
               key={a.path}
               onClick={() => navigate(a.path)}
-              className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col items-center justify-center text-center group border border-slate-50"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 12,
+                padding: '.875rem 1.25rem', borderRadius: 14,
+                background: D.surfaceBright, border: 'none', cursor: 'pointer',
+                boxShadow: D.ambient, transition: 'all .2s ease',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 20px 40px rgba(25,28,30,.1)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = D.ambient; }}
             >
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 ${a.bgIcon} rounded-2xl flex items-center justify-center ${a.textIcon} mb-3 group-hover:scale-110 transition-transform`}>
-                <M name={a.icon} filled className="text-2xl sm:text-3xl" />
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: D.surfaceLow, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={a.icon} filled size="1.15rem" color={D.primary} />
               </div>
-              <p className="font-headline font-bold text-xs sm:text-sm text-on-surface">{a.label}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5 hidden sm:block">{a.sub}</p>
+              <div style={{ textAlign: 'left' }}>
+                <p style={{ fontFamily: D.manrope, fontWeight: 700, fontSize: '.875rem', color: D.onSurface, marginBottom: 1 }}>{a.label}</p>
+                <p style={{ fontSize: '.72rem', color: D.onSurfaceVar }}>{a.sub}</p>
+              </div>
             </button>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* ╔══════════════════════════════════════╗
-         ║  SECTION 4 — Invoices + Sidebar       ║
-         ╚══════════════════════════════════════╝ */}
-      <section>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+      {/* ════════════════════════════════════════════
+          MAIN GRID — invoices (wide) + sidebar
+          ════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-          {/* ── Recent Invoices ── */}
-          <div className="lg:col-span-7 xl:col-span-8">
-            <SectionLabel icon="receipt_long" label="Recent Invoices" />
-
-            <div className="bg-surface-container-low rounded-2xl overflow-hidden">
-              <div className="flex justify-between items-center px-5 sm:px-6 py-4">
-                <h3 className="font-headline text-base sm:text-lg font-bold tracking-tight text-on-surface">
-                  Mushak 6.3 Challans
+        {/* ── Recent Invoices ────────────────────── */}
+        <div className="lg:col-span-8">
+          <Card>
+            {/* Card header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.375rem 1.75rem', borderBottom: '1px solid rgba(196,198,207,.12)' }}>
+              <div>
+                <Eyebrow>Recent Activity</Eyebrow>
+                <h3 style={{ fontFamily: D.manrope, fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-.025em', color: D.onSurface }}>
+                  Musak 6.3 Challans
                 </h3>
-                <button
-                  onClick={() => navigate('/invoices')}
-                  className="text-primary text-xs sm:text-sm font-bold inline-flex items-center gap-1 hover:underline"
-                >
-                  View All
-                  <M name="arrow_forward" className="text-sm" />
-                </button>
               </div>
-
-              {recent.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table
-                    dataSource={recent}
-                    columns={columns}
-                    rowKey="id"
-                    pagination={false}
-                    size="small"
-                    onRow={(record) => ({
-                      onClick: () => navigate(`/invoices/${record.id}`),
-                    })}
-                  />
-                </div>
-              ) : (
-                <div className="py-12 sm:py-16 text-center px-4">
-                  <div className="w-14 h-14 bg-surface-container rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <M name="receipt_long" className="text-3xl text-slate-400" />
-                  </div>
-                  <p className="text-sm text-slate-500 mb-4">No invoices yet</p>
-                  <button
-                    onClick={() => navigate('/invoices/new')}
-                    className="bg-primary text-on-primary px-5 py-2.5 rounded-xl font-headline font-bold text-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
-                  >
-                    <M name="add" className="text-sm" />
-                    Create Invoice
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Right Sidebar ── */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-5">
-
-            {/* Compliance Checklist */}
-            <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-50 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-bl-[40px] -mr-6 -mt-6" />
-
-              <h4 className="font-headline text-base font-bold mb-5 flex items-center gap-2 text-on-surface relative z-10">
-                <M name="gavel" className="text-primary text-xl" />
-                Compliance Status
-              </h4>
-
-              <div className="space-y-4">
-                {([
-                  { label: 'System Setup', sub: 'Master Data & Roles', done: true },
-                  { label: 'Invoices', sub: `${s.salesInvoices.length} Sales / ${s.purchaseInvoices.length} Purchases`, done: true },
-                  { label: 'VAT Recorded', sub: `Output ৳${fmt(outputVat)} · Input ৳${fmt(inputVat)}`, done: true },
-                ]).map((item) => (
-                  <div key={item.label} className="relative pl-5">
-                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#9ef4d0] rounded-full" />
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-bold text-sm text-on-surface leading-tight">{item.label}</p>
-                        <p className="text-[10px] text-slate-500">{item.sub}</p>
-                      </div>
-                      <M name="check_circle" filled className="text-primary text-lg flex-shrink-0" />
-                    </div>
-                  </div>
-                ))}
-
-                {/* Return — in progress */}
-                <div className="relative pl-5">
-                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#f7be06] rounded-full" />
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-sm text-tertiary leading-tight">Return Filing</p>
-                      <p className="text-[10px] text-slate-500">Musak 9.1 — {dayjs().format('MMMM')}</p>
-                    </div>
-                    <span className="text-[10px] font-bold text-tertiary bg-[#ffdf98]/30 px-2 py-0.5 rounded flex-shrink-0">
-                      PENDING
-                    </span>
-                  </div>
-                  <div className="mt-2.5 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#f7be06] rounded-full transition-all" style={{ width: '35%' }} />
-                  </div>
-                </div>
-              </div>
-
               <button
-                onClick={() => navigate('/returns')}
-                className="w-full mt-6 py-2.5 bg-primary text-on-primary rounded-xl font-headline font-bold text-sm hover:opacity-90 transition-opacity inline-flex items-center justify-center gap-2"
+                onClick={() => navigate('/invoices')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: D.manrope, fontSize: '.8125rem', fontWeight: 700, color: D.primary, background: 'none', border: 'none', cursor: 'pointer' }}
               >
-                Finalize Return
-                <M name="arrow_forward" className="text-sm" />
+                View All <Icon name="arrow_forward" size=".9rem" color={D.primary} />
               </button>
             </div>
 
-            {/* Financial Summary */}
-            <div className="bg-surface-container-low rounded-2xl p-5">
-              <h4 className="font-headline font-bold text-sm mb-4 text-on-surface flex items-center gap-2">
-                <M name="account_balance" className="text-primary text-lg" />
-                Financial Summary
-              </h4>
-              <div className="space-y-2.5">
-                {([
-                  { label: 'Total Sales',      value: `৳ ${fmt(vatData?.totalSalesValue ?? 0)}`,    icon: 'trending_up',    ic: 'text-[#00503a]' },
-                  { label: 'Total Purchases',  value: `৳ ${fmt(vatData?.totalPurchaseValue ?? 0)}`, icon: 'trending_down',  ic: 'text-[#584200]' },
-                  { label: 'Output VAT',       value: `৳ ${fmt(outputVat)}`,                        icon: 'receipt',        ic: 'text-[#00503a]' },
-                  { label: 'Input VAT Credit', value: `৳ ${fmt(inputVat)}`,                         icon: 'credit_card',    ic: 'text-[#465f88]' },
-                  { label: 'Fiscal Year',      value: fiscalYear(),                                  icon: 'calendar_month', ic: 'text-slate-500' },
-                ]).map((row) => (
-                  <div key={row.label} className="flex justify-between items-center py-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <M name={row.icon} className={`text-base ${row.ic} flex-shrink-0`} />
-                      <span className="text-xs text-slate-500 truncate">{row.label}</span>
+            {recent.length > 0 ? (
+              <>
+                {/* Table head */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: 0, padding: '.75rem 1.75rem', background: D.surface }}>
+                  {['Invoice No', 'Party / Date', 'VAT Amount', 'Status'].map((h, i) => (
+                    <p key={h} style={{ fontFamily: D.manrope, fontSize: '.63rem', fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase', color: D.onSurfaceVar, textAlign: i >= 2 ? 'right' : 'left' }}>
+                      {h}
+                    </p>
+                  ))}
+                </div>
+                {/* Rows — DESIGN.md: no dividers, 4px bg shift on hover */}
+                {recent.map((inv, idx) => {
+                  const cfg = statusCfg[inv.status] ?? statusCfg.draft;
+                  return (
+                    <div
+                      key={inv.id}
+                      onClick={() => navigate(`/invoices/${inv.id}`)}
+                      style={{
+                        display: 'grid', gridTemplateColumns: '1fr 1fr auto auto',
+                        alignItems: 'center', gap: 0,
+                        padding: '.875rem 1.75rem', cursor: 'pointer',
+                        background: idx % 2 === 1 ? D.surface : 'transparent',
+                        transition: 'background .15s ease',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = D.surfaceLow; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = idx % 2 === 1 ? D.surface : 'transparent'; }}
+                    >
+                      <div>
+                        <p style={{ fontFamily: D.manrope, fontWeight: 700, fontSize: '.875rem', color: D.onSurface, marginBottom: 1 }}>{inv.challanNo}</p>
+                        <p style={{ fontSize: '.72rem', color: D.onSurfaceVar }}>{inv.invoiceType === 'sales' ? 'Sales' : 'Purchase'}</p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '.8125rem', color: D.onSurface }}>{(inv as any).customer?.name || 'Walk-in'}</p>
+                        <p style={{ fontSize: '.72rem', color: D.onSurfaceVar }}>{dayjs(inv.challanDate).format('DD MMM YYYY')}</p>
+                      </div>
+                      <p style={{ fontFamily: D.manrope, fontWeight: 800, fontSize: '.875rem', color: D.onSurface, textAlign: 'right', paddingRight: 20, whiteSpace: 'nowrap' }}>
+                        ৳ {fmt(Number(inv.vatTotal))}
+                      </p>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '.22rem .65rem', borderRadius: 100, background: cfg.bg, fontFamily: D.manrope, fontSize: '.6rem', fontWeight: 800, letterSpacing: '.05em', color: cfg.color }}>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: cfg.color, display: 'inline-block', flexShrink: 0 }} />
+                          {cfg.label}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-sm font-bold text-on-surface whitespace-nowrap ml-2">{row.value}</span>
-                  </div>
-                ))}
+                  );
+                })}
+              </>
+            ) : (
+              /* Empty state — DESIGN.md: "editorial opportunities" */
+              <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                <div style={{ width: 60, height: 60, background: D.surfaceLow, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <Icon name="receipt_long" size="1.75rem" color={D.onSurfaceVar} />
+                </div>
+                <p style={{ fontFamily: D.manrope, fontWeight: 700, fontSize: '1rem', color: D.onSurface, marginBottom: 6, letterSpacing: '-.02em' }}>
+                  No invoices yet
+                </p>
+                <p style={{ fontSize: '.8125rem', color: D.onSurfaceVar, marginBottom: 20, lineHeight: 1.6 }}>
+                  Create your first Musak 6.3 challan to get started.
+                </p>
+                <button
+                  onClick={() => navigate('/invoices/new')}
+                  style={{ background: D.grad, color: '#fff', padding: '.65rem 1.5rem', borderRadius: '1.5rem', fontFamily: D.manrope, fontWeight: 700, fontSize: '.875rem', border: 'none', cursor: 'pointer' }}
+                >
+                  Create Invoice
+                </button>
               </div>
+            )}
+          </Card>
+        </div>
+
+        {/* ── Right sidebar ──────────────────────── */}
+        <div className="lg:col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Compliance Status */}
+          <Card style={{ padding: '1.5rem' }}>
+            <Eyebrow>Compliance Status</Eyebrow>
+            <div>
+              {([
+                {
+                  label: 'System Setup',
+                  sub: 'Master data & roles',
+                  done: true,
+                },
+                {
+                  label: 'Invoices Recorded',
+                  sub: `${s.salesInvoices.length} sales / ${s.purchaseInvoices.length} purchases`,
+                  done: true,
+                },
+                {
+                  label: 'VAT Computed',
+                  sub: `৳ ${fmt(outputVat)} output · ৳ ${fmt(inputVat)} input`,
+                  done: true,
+                },
+                {
+                  label: 'Return Filing',
+                  sub: `Musak 9.1 — ${dayjs().format('MMMM')}`,
+                  done: false,
+                },
+              ]).map((item, i, arr) => (
+                <div
+                  key={item.label}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    gap: 12, padding: '.875rem 0',
+                    borderBottom: i < arr.length - 1 ? '1px solid rgba(196,198,207,.12)' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: item.done ? D.tertiary : '#f7be06' }} />
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontFamily: D.manrope, fontWeight: 700, fontSize: '.8125rem', color: D.onSurface, marginBottom: 1 }}>
+                        {item.label}
+                      </p>
+                      <p style={{ fontSize: '.72rem', color: D.onSurfaceVar, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.sub}
+                      </p>
+                    </div>
+                  </div>
+                  {item.done ? (
+                    <Icon name="check_circle" filled size="1.1rem" color={D.tertiary} />
+                  ) : (
+                    <span style={{ padding: '.18rem .6rem', borderRadius: 100, background: 'rgba(247,190,6,.1)', fontFamily: D.manrope, fontSize: '.6rem', fontWeight: 800, letterSpacing: '.05em', color: '#584200', whiteSpace: 'nowrap' }}>
+                      PENDING
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
 
-            {/* Compliance Tip */}
-            <div className="bg-[#b6d0ff]/20 rounded-2xl p-5 border border-[#b6d0ff]/40">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 bg-[#b6d0ff] rounded-lg flex items-center justify-center text-[#3f5881] flex-shrink-0">
-                  <M name="lightbulb" className="text-lg" />
+            {/* Primary CTA — gradient per DESIGN.md, no shadow */}
+            <button
+              onClick={() => navigate('/returns')}
+              style={{
+                width: '100%', marginTop: 16,
+                padding: '.75rem', borderRadius: '1.5rem',
+                background: D.grad, color: '#fff',
+                border: 'none', cursor: 'pointer',
+                fontFamily: D.manrope, fontWeight: 700, fontSize: '.875rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                transition: 'opacity .2s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '.88'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+            >
+              Generate Return
+              <Icon name="arrow_forward" size=".9rem" color="#fff" />
+            </button>
+          </Card>
+
+          {/* Financial Summary — surface_container_low per DESIGN.md layering */}
+          <div style={{ background: D.surfaceLow, borderRadius: 20, padding: '1.5rem' }}>
+            <Eyebrow>Financial Summary</Eyebrow>
+            <div>
+              {([
+                { label: 'Total Sales',       value: `৳ ${fmt(vatData?.totalSalesValue ?? 0)}`,    accent: D.tertiary  },
+                { label: 'Total Purchases',   value: `৳ ${fmt(vatData?.totalPurchaseValue ?? 0)}`, accent: D.primary   },
+                { label: 'Output VAT',        value: `৳ ${fmt(outputVat)}`,                        accent: D.tertiary  },
+                { label: 'Input VAT Credit',  value: `৳ ${fmt(inputVat)}`,                         accent: D.primary   },
+                { label: 'Fiscal Year',       value: fiscalYear(),                                  accent: D.onSurface },
+              ]).map(({ label, value, accent }, i) => (
+                <div
+                  key={label}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '.625rem .75rem', borderRadius: 10, marginBottom: 2,
+                    // 4px bg shift per DESIGN.md "Cards & Data Lists"
+                    background: i % 2 === 0 ? 'rgba(255,255,255,.7)' : 'transparent',
+                  }}
+                >
+                  <p style={{ fontSize: '.78rem', color: D.onSurfaceVar }}>{label}</p>
+                  <p style={{ fontFamily: D.manrope, fontWeight: 700, fontSize: '.8125rem', color: accent }}>{value}</p>
                 </div>
-                <h4 className="font-headline font-bold text-sm text-[#3f5881]">Compliance Tip</h4>
-              </div>
-              <p className="text-xs text-[#3f5881]/80 leading-relaxed">
-                Ensure all Musak 6.3 invoices for {dayjs().format('MMMM')} are uploaded before the 15th of{' '}
-                {dayjs().add(1, 'month').format('MMMM')} to avoid penalties under Section 127.
-              </p>
+              ))}
             </div>
           </div>
+
         </div>
-      </section>
+      </div>
     </div>
   );
 }

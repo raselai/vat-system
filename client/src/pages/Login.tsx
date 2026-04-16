@@ -16,7 +16,7 @@ export default function Login() {
     try {
       await login(values.email, values.password);
       message.success('Login successful');
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: any) {
       message.error(err.response?.data?.error || 'Login failed');
     } finally {

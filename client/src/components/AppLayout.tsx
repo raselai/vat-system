@@ -11,7 +11,7 @@ interface NavItem {
 }
 
 const menuItems: NavItem[] = [
-  { key: '/', icon: 'dashboard', label: 'Overview' },
+  { key: '/dashboard', icon: 'dashboard', label: 'Overview' },
   { key: '/companies', icon: 'business_center', label: 'Business Setup' },
   { key: '/invoices', icon: 'receipt_long', label: 'Invoices' },
   { key: '/vds/certificates', icon: 'verified', label: 'VDS Certificates' },
@@ -78,7 +78,7 @@ export default function AppLayout() {
   };
 
   const isActive = (key: string) => {
-    if (key === '/') return location.pathname === '/';
+    if (key === '/dashboard') return location.pathname === '/dashboard';
     return location.pathname.startsWith(key);
   };
 

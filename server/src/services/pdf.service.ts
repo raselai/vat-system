@@ -27,23 +27,9 @@ function readTemplate(fileName: string): string {
 }
 
 // Singleton browser — launched once, reused across all PDF requests.
-// On Vercel each invocation is ephemeral so we still spawn per-request there.
 let _browser: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
-  // Vercel: no persistent process — always launch fresh
-  if (process.env.VERCEL) {
-    const chromium = require('@sparticuz/chromium');
-    const puppeteerCore = require('puppeteer-core');
-    return puppeteerCore.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
-  }
-
-  // Reuse existing browser if still connected
   if (_browser) {
     try {
       // ping — throws if the process has died
@@ -69,7 +55,6 @@ async function getBrowser(): Promise<Browser> {
 async function renderPdf(
   html: string,
   pageOptions: Parameters<import('puppeteer').Page['pdf']>[0],
-  isVercel: boolean,
 ): Promise<Buffer> {
   const browser = await getBrowser();
   const page = await browser.newPage();
@@ -79,8 +64,6 @@ async function renderPdf(
     return Buffer.from(pdfBuffer);
   } finally {
     await page.close();
-    // On Vercel the browser is single-use — close it to free memory
-    if (isVercel) await browser.close();
   }
 }
 
@@ -128,7 +111,7 @@ export async function generateMusak63Pdf(invoiceData: any): Promise<Buffer> {
     format: 'A4',
     printBackground: true,
     margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
-  }, !!process.env.VERCEL);
+  });
 }
 
 export async function generateMusak66Pdf(certData: any): Promise<Buffer> {
@@ -156,7 +139,7 @@ export async function generateMusak66Pdf(certData: any): Promise<Buffer> {
     format: 'A4',
     printBackground: true,
     margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
-  }, !!process.env.VERCEL);
+  });
 }
 
 export async function generateMusak67Pdf(registerData: any): Promise<Buffer> {
@@ -183,7 +166,7 @@ export async function generateMusak67Pdf(registerData: any): Promise<Buffer> {
     landscape: true,
     printBackground: true,
     margin: { top: '10mm', right: '8mm', bottom: '10mm', left: '8mm' },
-  }, !!process.env.VERCEL);
+  });
 }
 
 export async function generateMusak91Pdf(returnData: any): Promise<Buffer> {
@@ -214,7 +197,7 @@ export async function generateMusak91Pdf(returnData: any): Promise<Buffer> {
     format: 'A4',
     printBackground: true,
     margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
-  }, !!process.env.VERCEL);
+  });
 }
 
 function fmt(n: number): string {
@@ -284,7 +267,7 @@ export async function generateNbrFilingGuidePdf(data: {
     format: 'A4',
     printBackground: true,
     margin: { top: '15mm', right: '12mm', bottom: '15mm', left: '12mm' },
-  }, !!process.env.VERCEL);
+  });
 }
 
 const REPORT_TITLES: Record<string, string> = {
@@ -309,5 +292,5 @@ export async function generateReportPdf(type: string, data: any): Promise<Buffer
     ...data,
   });
 
-  return renderPdf(html, { format: 'A4', printBackground: true, margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' } }, !!process.env.VERCEL);
+  return renderPdf(html, { format: 'A4', printBackground: true, margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' } });
 }

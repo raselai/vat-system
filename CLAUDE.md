@@ -69,7 +69,7 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
   - `nbr-filing-guide.html` — NBR portal filing cheat sheet (filing guide PDF)
   - `Logo.png` — Bangladesh government seal, embedded as base64 in all PDF templates via `readLogoAsBase64()` in `pdf.service.ts`
   - Each template has a dedicated `generateXxxPdf()` export in `pdf.service.ts` following: read template → compile → render → return `Buffer`
-  - On Vercel (`process.env.VERCEL`), switches to `@sparticuz/chromium` + `puppeteer-core`; locally uses standard `puppeteer` with a singleton browser instance
+  - Uses standard `puppeteer` with a singleton browser instance (reused across requests, reconnects automatically if Chromium dies)
 - **Challan numbering**: `server/src/utils/challan.ts` — `generateChallanNo()` runs inside a Prisma transaction with `SELECT ... FOR UPDATE` to atomically lock the company row and increment `next_challan_no`. Format: `{prefix}-{fiscal_year}-{seq padded to 4}`
 - **Route prefix**: All routes under `/api/v1/`
 
@@ -140,7 +140,7 @@ Client: `client/src/services/reports.service.ts` wraps all five JSON endpoints p
 - **Admin-only** — all routes require `authenticate` + `companyScope` + `requireRole('admin')` + `auditLog`
 - **Storage**: `mysqldump --single-transaction` piped through gzip → `$BACKUP_DIR/<YYYY-MM-DD_HH-mm>.sql.gz` (default `./backups/`). Requires `mysqldump` in `PATH` on the host
 - **Retention**: 30 days. `cleanOldBackups()` runs after each scheduled or triggered backup
-- **Scheduler**: daily at 2:00 AM Asia/Dhaka via `node-cron` (`startBackupScheduler()` in `server/src/index.ts`, skipped on Vercel)
+- **Scheduler**: daily at 2:00 AM Asia/Dhaka via `node-cron` (`startBackupScheduler()` in `server/src/index.ts`)
 - **Routes**: `POST /trigger` (manual run), `GET /list`, `GET /download/:filename` (filename validated against `YYYY-MM-DD_HH-mm.sql.gz` regex to prevent path traversal)
 - **Env vars**: `BACKUP_DIR` (path), `DATABASE_URL` (parsed to extract host/port/user/password/database)
 
