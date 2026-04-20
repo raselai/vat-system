@@ -2,67 +2,163 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Material Symbols ────────────────────────────────────────────────────── */
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
+/* ─── Global Typography ───────────────────────────────────────────────────── */
 body {
   font-family: 'Inter', sans-serif;
-  background: #f7f9ff;
-  color: #181c20;
+  background: #f7f9fb;
+  color: #191c1e;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Manrope = The Authority — DESIGN.md directive */
 h1, h2, h3, h4, h5, h6,
-.headline {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+.headline,
+.font-headline {
+  font-family: 'Manrope', 'Plus Jakarta Sans', sans-serif;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Override Ant Design defaults for cohesion */
+/* ─── Ant Design Table Overrides — Sovereign Ledger ──────────────────────── */
+/* Header: uppercase micro-labels per DESIGN.md */
 .ant-table-thead > tr > th {
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Manrope', sans-serif !important;
   font-size: 10px !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.1em !important;
-  color: #6f7a73 !important;
+  color: #44474a !important;
   background: transparent !important;
   border-bottom: none !important;
-  padding-bottom: 16px !important;
+  padding-bottom: 14px !important;
 }
 
+/* No dividers per DESIGN.md "Forbid Dividers" */
 .ant-table-tbody > tr > td {
   border-bottom: none !important;
 }
 
+/* Row hover — 4px bg shift per DESIGN.md */
 .ant-table-tbody > tr:hover > td {
-  background: #e5e8ee !important;
+  background: #f2f4f6 !important;
 }
 
 .ant-table-tbody > tr {
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.12s ease;
 }
 
+/* Rounded row ends */
 .ant-table-tbody > tr > td:first-child {
-  border-radius: 12px 0 0 12px;
+  border-radius: 10px 0 0 10px;
 }
-
 .ant-table-tbody > tr > td:last-child {
-  border-radius: 0 12px 12px 0;
+  border-radius: 0 10px 10px 0;
 }
 
-/* Ant Select in sidebar */
+/* Ant Select */
 .sidebar-select .ant-select-selector {
   background: transparent !important;
-  border: 1px solid #bec9c2 !important;
+  border: 1px solid rgba(196,198,207,0.4) !important;
+  border-radius: 10px !important;
+}
+
+/* Ant Tabs — clean minimal style */
+.ant-tabs-tab {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: #44474a !important;
+}
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #001d52 !important;
+}
+.ant-tabs-ink-bar {
+  background: #001d52 !important;
+}
+.ant-tabs-nav::before {
+  border-bottom-color: rgba(196,198,207,0.25) !important;
+}
+
+/* Ant Form Labels */
+.ant-form-item-label > label {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  color: #44474a !important;
+}
+
+/* Ant Input — Ghost border per DESIGN.md */
+.ant-input,
+.ant-input-number,
+.ant-input-number-input,
+.ant-select-selector,
+.ant-picker {
+  border-color: rgba(196,198,207,0.4) !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+}
+.ant-input:focus,
+.ant-input-number-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  border-color: #001d52 !important;
+  box-shadow: 0 0 0 2px rgba(0,29,82,0.08) !important;
+}
+
+/* Ant Button primary — Sovereign Ledger gradient */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #001d52, #00307e) !important;
+  border: none !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+}
+.ant-btn-primary:hover {
+  opacity: 0.88 !important;
+}
+
+/* Ant Pagination */
+.ant-pagination-item-active {
+  border-color: #001d52 !important;
+}
+.ant-pagination-item-active a {
+  color: #001d52 !important;
+}
+
+/* Ant Message / Notification */
+.ant-message-notice-content {
+  font-family: 'Inter', sans-serif !important;
   border-radius: 12px !important;
+}
+
+/* ─── Sovereign Ledger Custom Utilities ───────────────────────────────────── */
+.sl-grad {
+  background: linear-gradient(135deg, #001d52, #00307e);
+}
+
+.sl-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 16px 32px rgba(25,28,30,0.06);
+}
+
+.sl-surface-low {
+  background: #f2f4f6;
+  border-radius: 16px;
+}
+
+/* Ghost border — felt not seen, per DESIGN.md */
+.sl-ghost-border {
+  border: 1px solid rgba(196,198,207,0.15);
 }

@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Table, Typography, message, DatePicker, Button, Space, Card, Statistic, Row, Col } from 'antd';
-import { FilePdfOutlined } from '@ant-design/icons';
+import { Table, message, DatePicker } from 'antd';
 import dayjs from 'dayjs';
 import { RegisterResult } from '../../types';
 import { getRegister, downloadRegisterPdf } from '../../services/register';
-
-const { Title } = Typography;
+import { D, Icon, PageHeader, TonalBtn, TableWrap } from '../../styles/design';
 
 const fmt = (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
@@ -15,8 +13,8 @@ interface RegisterPageProps {
 }
 
 export default function RegisterPage({ type, title }: RegisterPageProps) {
-  const [data, setData] = useState<RegisterResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [data, setData]         = useState<RegisterResult | null>(null);
+  const [loading, setLoading]   = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [taxMonth, setTaxMonth] = useState<string>(dayjs().format('YYYY-MM'));
 
@@ -45,89 +43,118 @@ export default function RegisterPage({ type, title }: RegisterPageProps) {
     }
   };
 
-  const columns = [
-    { title: 'SL', dataIndex: 'sl', key: 'sl', width: 50 },
-    { title: 'Challan No', dataIndex: 'challanNo', key: 'challanNo', width: 140 },
-    { title: 'Date', dataIndex: 'challanDate', key: 'challanDate', width: 100, render: (d: string) => new Date(d).toLocaleDateString('en-GB') },
-    { title: type === 'sales' ? 'Buyer' : 'Seller', dataIndex: 'customerName', key: 'customerName', render: (v: string | null) => v || '-' },
-    { title: 'BIN', dataIndex: 'customerBin', key: 'customerBin', width: 130, render: (v: string | null) => v || '-' },
-    { title: 'Taxable Value', dataIndex: 'subtotal', key: 'subtotal', width: 120, render: fmt },
-    { title: 'SD', dataIndex: 'sdTotal', key: 'sdTotal', width: 90, render: fmt },
-    { title: 'VAT', dataIndex: 'vatTotal', key: 'vatTotal', width: 110, render: fmt },
-    { title: 'Specific Duty', dataIndex: 'specificDutyTotal', key: 'specificDutyTotal', width: 110, render: fmt },
-    { title: 'Grand Total', dataIndex: 'grandTotal', key: 'grandTotal', width: 120, render: (v: number) => <strong>{fmt(v)}</strong> },
-    { title: 'VDS', dataIndex: 'vdsAmount', key: 'vdsAmount', width: 100, render: fmt },
-    { title: 'Net Receivable', dataIndex: 'netReceivable', key: 'netReceivable', width: 120, render: fmt },
-  ];
-
   const summary = data?.summary;
 
+  const columns = [
+    { title: 'SL', dataIndex: 'sl', key: 'sl', width: 50, render: (v: number) => <span style={{ color: D.onSurfaceVar }}>{v}</span> },
+    { title: 'Challan No', dataIndex: 'challanNo', key: 'challanNo', width: 140,
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.primary, fontSize: 13 }}>{v}</span> },
+    { title: 'Date', dataIndex: 'challanDate', key: 'challanDate', width: 100,
+      render: (d: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{new Date(d).toLocaleDateString('en-GB')}</span> },
+    { title: type === 'sales' ? 'Buyer' : 'Seller', dataIndex: 'customerName', key: 'customerName',
+      render: (v: string | null) => <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface }}>{v || '—'}</span> },
+    { title: 'BIN', dataIndex: 'customerBin', key: 'customerBin', width: 130,
+      render: (v: string | null) => <span style={{ fontFamily: 'monospace', fontSize: 12, color: D.onSurfaceVar }}>{v || '—'}</span> },
+    { title: 'Taxable Value', dataIndex: 'subtotal', key: 'subtotal', width: 130, align: 'right' as const,
+      render: fmt },
+    { title: 'SD', dataIndex: 'sdTotal', key: 'sdTotal', width: 90, align: 'right' as const,
+      render: (v: number) => <span style={{ color: D.onSurfaceVar }}>{fmt(v)}</span> },
+    { title: 'VAT', dataIndex: 'vatTotal', key: 'vatTotal', width: 120, align: 'right' as const,
+      render: (v: number) => <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.onSurface }}>{fmt(v)}</span> },
+    { title: 'Specific Duty', dataIndex: 'specificDutyTotal', key: 'specificDutyTotal', width: 110, align: 'right' as const,
+      render: (v: number) => <span style={{ color: D.onSurfaceVar }}>{fmt(v)}</span> },
+    { title: 'Grand Total', dataIndex: 'grandTotal', key: 'grandTotal', width: 130, align: 'right' as const,
+      render: (v: number) => <span style={{ fontFamily: D.manrope, fontWeight: 800, color: D.onSurface }}>{fmt(v)}</span> },
+    { title: 'VDS', dataIndex: 'vdsAmount', key: 'vdsAmount', width: 100, align: 'right' as const,
+      render: (v: number) => <span style={{ color: D.onSurfaceVar }}>{fmt(v)}</span> },
+    { title: 'Net Receivable', dataIndex: 'netReceivable', key: 'netReceivable', width: 130, align: 'right' as const,
+      render: (v: number) => <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.tertiary }}>{fmt(v)}</span> },
+  ];
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-        <Title level={4} style={{ margin: 0 }}>{title}</Title>
-        <Space>
-          <DatePicker
-            picker="month"
-            value={dayjs(taxMonth, 'YYYY-MM')}
-            onChange={(d) => setTaxMonth(d?.format('YYYY-MM') || dayjs().format('YYYY-MM'))}
-            allowClear={false}
-          />
-          <Button icon={<FilePdfOutlined />} loading={pdfLoading} onClick={handlePdf}>
-            Download PDF
-          </Button>
-        </Space>
-      </div>
-
-      {summary && (
-        <Card style={{ marginBottom: 16 }}>
-          <Row gutter={[16, 16]}>
-            <Col xs={12} sm={8} md={6} lg={4}>
-              <Statistic title="Invoices" value={summary.totalInvoices} />
-            </Col>
-            <Col xs={12} sm={8} md={6} lg={4}>
-              <Statistic title="Taxable Value" value={summary.subtotal} precision={2} />
-            </Col>
-            <Col xs={12} sm={8} md={6} lg={4}>
-              <Statistic title="VAT Total" value={summary.vatTotal} precision={2} />
-            </Col>
-            <Col xs={12} sm={8} md={6} lg={4}>
-              <Statistic title="Grand Total" value={summary.grandTotal} precision={2} />
-            </Col>
-            <Col xs={12} sm={8} md={6} lg={4}>
-              <Statistic title="VDS" value={summary.vdsAmount} precision={2} />
-            </Col>
-            <Col xs={12} sm={8} md={6} lg={4}>
-              <Statistic title="Net Receivable" value={summary.netReceivable} precision={2} />
-            </Col>
-          </Row>
-        </Card>
-      )}
-
-      <Table
-        columns={columns}
-        dataSource={data?.entries || []}
-        rowKey="invoiceId"
-        loading={loading}
-        scroll={{ x: 1400 }}
-        pagination={false}
-        summary={() =>
-          summary && summary.totalInvoices > 0 ? (
-            <Table.Summary fixed>
-              <Table.Summary.Row>
-                <Table.Summary.Cell index={0} colSpan={5}><strong>Total</strong></Table.Summary.Cell>
-                <Table.Summary.Cell index={5}><strong>{fmt(summary.subtotal)}</strong></Table.Summary.Cell>
-                <Table.Summary.Cell index={6}><strong>{fmt(summary.sdTotal)}</strong></Table.Summary.Cell>
-                <Table.Summary.Cell index={7}><strong>{fmt(summary.vatTotal)}</strong></Table.Summary.Cell>
-                <Table.Summary.Cell index={8}><strong>{fmt(summary.specificDutyTotal)}</strong></Table.Summary.Cell>
-                <Table.Summary.Cell index={9}><strong>{fmt(summary.grandTotal)}</strong></Table.Summary.Cell>
-                <Table.Summary.Cell index={10}><strong>{fmt(summary.vdsAmount)}</strong></Table.Summary.Cell>
-                <Table.Summary.Cell index={11}><strong>{fmt(summary.netReceivable)}</strong></Table.Summary.Cell>
-              </Table.Summary.Row>
-            </Table.Summary>
-          ) : null
+    <div style={{ fontFamily: D.inter, color: D.onSurface }}>
+      <PageHeader
+        eyebrow={type === 'sales' ? 'মূসক-৬.৭ / Musak 6.7' : 'মূসক-৬.৭ / Musak 6.7'}
+        title={title}
+        action={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <DatePicker
+              picker="month"
+              value={dayjs(taxMonth, 'YYYY-MM')}
+              onChange={(d) => setTaxMonth(d?.format('YYYY-MM') || dayjs().format('YYYY-MM'))}
+              allowClear={false}
+              format="MMM YYYY"
+              style={{ width: 130 }}
+            />
+            <TonalBtn icon="picture_as_pdf" loading={pdfLoading} onClick={handlePdf}>
+              PDF
+            </TonalBtn>
+          </div>
         }
       />
+
+      {/* Summary KPI strip */}
+      {summary && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" style={{ marginBottom: 24 }}>
+          {([
+            { label: 'Invoices',      value: String(summary.totalInvoices), icon: 'receipt_long'   },
+            { label: 'Taxable Value', value: `৳ ${fmt(summary.subtotal)}`,  icon: 'attach_money'   },
+            { label: 'VAT Total',     value: `৳ ${fmt(summary.vatTotal)}`,  icon: 'percent'        },
+            { label: 'Grand Total',   value: `৳ ${fmt(summary.grandTotal)}`, icon: 'payments', featured: true },
+            { label: 'VDS',           value: `৳ ${fmt(summary.vdsAmount)}`, icon: 'verified'       },
+            { label: 'Net Receivable', value: `৳ ${fmt(summary.netReceivable)}`, icon: 'account_balance' },
+          ]).map(({ label, value, icon, featured }) => (
+            <div
+              key={label}
+              style={{
+                borderRadius: 14, padding: '1rem',
+                background: featured ? D.grad : D.surfaceBright,
+                boxShadow: featured ? '0 12px 40px rgba(0,29,82,0.16)' : D.ambient,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Icon name={icon} size={14} style={{ color: featured ? 'rgba(255,255,255,0.7)' : D.onSurfaceVar }} />
+                <p style={{ fontFamily: D.manrope, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: featured ? 'rgba(255,255,255,0.65)' : D.onSurfaceVar }}>
+                  {label}
+                </p>
+              </div>
+              <p style={{ fontFamily: D.manrope, fontWeight: 800, fontSize: 13, color: featured ? '#fff' : D.onSurface, lineHeight: 1 }}>
+                {value}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <TableWrap>
+        <Table
+          columns={columns}
+          dataSource={data?.entries || []}
+          rowKey="invoiceId"
+          loading={loading}
+          scroll={{ x: 1400 }}
+          pagination={false}
+          size="small"
+          summary={() =>
+            summary && summary.totalInvoices > 0 ? (
+              <Table.Summary fixed>
+                <Table.Summary.Row style={{ background: D.surfaceLow }}>
+                  <Table.Summary.Cell index={0} colSpan={5}>
+                    <span style={{ fontFamily: D.manrope, fontWeight: 800, color: D.onSurface }}>Total</span>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={5} align="right"><span style={{ fontFamily: D.manrope, fontWeight: 700 }}>{fmt(summary.subtotal)}</span></Table.Summary.Cell>
+                  <Table.Summary.Cell index={6} align="right"><span style={{ color: D.onSurfaceVar }}>{fmt(summary.sdTotal)}</span></Table.Summary.Cell>
+                  <Table.Summary.Cell index={7} align="right"><span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.onSurface }}>{fmt(summary.vatTotal)}</span></Table.Summary.Cell>
+                  <Table.Summary.Cell index={8} align="right"><span style={{ color: D.onSurfaceVar }}>{fmt(summary.specificDutyTotal)}</span></Table.Summary.Cell>
+                  <Table.Summary.Cell index={9} align="right"><span style={{ fontFamily: D.manrope, fontWeight: 800, color: D.onSurface }}>{fmt(summary.grandTotal)}</span></Table.Summary.Cell>
+                  <Table.Summary.Cell index={10} align="right"><span style={{ color: D.onSurfaceVar }}>{fmt(summary.vdsAmount)}</span></Table.Summary.Cell>
+                  <Table.Summary.Cell index={11} align="right"><span style={{ fontFamily: D.manrope, fontWeight: 800, color: D.tertiary }}>{fmt(summary.netReceivable)}</span></Table.Summary.Cell>
+                </Table.Summary.Row>
+              </Table.Summary>
+            ) : null
+          }
+        />
+      </TableWrap>
     </div>
   );
 }

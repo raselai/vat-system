@@ -1,23 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, Space, Typography, message, Tag, Select, Popconfirm } from 'antd';
-import { PlusOutlined, FilePdfOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { Table, message, Select, Popconfirm } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { VdsCertificate } from '../../types';
 import { finalizeCertificate, cancelCertificate } from '../../services/vds';
-
-const { Title } = Typography;
-
-const statusColors: Record<string, string> = {
-  draft: 'default',
-  finalized: 'green',
-  cancelled: 'red',
-};
-
-const roleColors: Record<string, string> = {
-  deductor: 'blue',
-  deductee: 'orange',
-};
+import { D, PageHeader, GradBtn, TonalBtn, TableWrap, FilterBar, StatusChip } from '../../styles/design';
 
 export default function CertificateList() {
   const [certificates, setCertificates] = useState<VdsCertificate[]>([]);
@@ -80,65 +67,114 @@ export default function CertificateList() {
   };
 
   const columns = [
-    { title: 'Certificate No', dataIndex: 'certificateNo', key: 'certificateNo' },
     {
-      title: 'Role', dataIndex: 'role', key: 'role',
-      render: (role: string) => <Tag color={roleColors[role]}>{role}</Tag>,
-    },
-    { title: 'Date', dataIndex: 'certificateDate', key: 'certificateDate', render: (d: string) => new Date(d).toLocaleDateString('en-GB') },
-    { title: 'Counterparty', dataIndex: 'counterpartyName', key: 'counterpartyName' },
-    { title: 'BIN', dataIndex: 'counterpartyBin', key: 'counterpartyBin' },
-    { title: 'VAT Amount', dataIndex: 'vatAmount', key: 'vatAmount', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'VDS Amount', dataIndex: 'vdsAmount', key: 'vdsAmount', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'Tax Month', dataIndex: 'taxMonth', key: 'taxMonth' },
-    {
-      title: 'Status', dataIndex: 'status', key: 'status',
-      render: (status: string) => <Tag color={statusColors[status]}>{status}</Tag>,
+      title: 'Certificate No',
+      dataIndex: 'certificateNo',
+      key: 'certificateNo',
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.primary, fontSize: 13 }}>{v}</span>,
     },
     {
-      title: 'Actions', key: 'actions',
+      title: 'Role',
+      dataIndex: 'role',
+      key: 'role',
+      render: (v: string) => <StatusChip status={v} />,
+    },
+    {
+      title: 'Date',
+      dataIndex: 'certificateDate',
+      key: 'certificateDate',
+      render: (d: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{new Date(d).toLocaleDateString('en-GB')}</span>,
+    },
+    {
+      title: 'Counterparty',
+      dataIndex: 'counterpartyName',
+      key: 'counterpartyName',
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface }}>{v}</span>,
+    },
+    {
+      title: 'BIN',
+      dataIndex: 'counterpartyBin',
+      key: 'counterpartyBin',
+      render: (v: string) => <span style={{ fontFamily: 'monospace', fontSize: 12, color: D.onSurfaceVar }}>{v}</span>,
+    },
+    {
+      title: 'VAT Amount',
+      dataIndex: 'vatAmount',
+      key: 'vatAmount',
+      render: (v: number) => <span style={{ color: D.onSurfaceVar }}>৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>,
+    },
+    {
+      title: 'VDS Amount',
+      dataIndex: 'vdsAmount',
+      key: 'vdsAmount',
+      render: (v: number) => <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.onSurface }}>৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>,
+    },
+    {
+      title: 'Tax Month',
+      dataIndex: 'taxMonth',
+      key: 'taxMonth',
+      render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v}</span>,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (s: string) => <StatusChip status={s} />,
+    },
+    {
+      title: '',
+      key: 'actions',
       render: (_: unknown, record: VdsCertificate) => (
-        <Space>
-          <Button size="small" icon={<FilePdfOutlined />} onClick={() => handlePdf(record.id, record.certificateNo)} />
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <TonalBtn icon="picture_as_pdf" size="sm" onClick={() => handlePdf(record.id, record.certificateNo)}>PDF</TonalBtn>
           {record.status === 'draft' && (
             <>
               <Popconfirm title="Finalize this certificate?" onConfirm={() => handleFinalize(record.id)}>
-                <Button size="small" icon={<CheckOutlined />} type="primary" />
+                <TonalBtn icon="check_circle" size="sm">Finalize</TonalBtn>
               </Popconfirm>
               <Popconfirm title="Cancel this certificate?" onConfirm={() => handleCancel(record.id)}>
-                <Button size="small" icon={<CloseOutlined />} danger />
+                <TonalBtn icon="cancel" size="sm" danger>Cancel</TonalBtn>
               </Popconfirm>
             </>
           )}
-        </Space>
+        </div>
       ),
     },
   ];
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>Musak 6.6 — VDS Certificates</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/vds/certificates/new')}>
-          New Certificate
-        </Button>
-      </div>
-      <Space style={{ marginBottom: 16 }}>
-        <Select placeholder="Status" allowClear style={{ width: 140 }} onChange={setStatusFilter}
+    <div style={{ fontFamily: D.inter, color: D.onSurface }}>
+      <PageHeader
+        eyebrow="Musak 6.6"
+        title="VDS Certificates"
+        action={<GradBtn icon="add" onClick={() => navigate('/vds/certificates/new')}>New Certificate</GradBtn>}
+      />
+      <FilterBar>
+        <Select
+          placeholder="All Statuses"
+          allowClear
+          style={{ width: 160 }}
+          onChange={setStatusFilter}
           options={[
             { value: 'draft', label: 'Draft' },
             { value: 'finalized', label: 'Finalized' },
             { value: 'cancelled', label: 'Cancelled' },
           ]}
         />
-        <Select placeholder="Role" allowClear style={{ width: 140 }} onChange={setRoleFilter}
+        <Select
+          placeholder="All Roles"
+          allowClear
+          style={{ width: 160 }}
+          onChange={setRoleFilter}
           options={[
             { value: 'deductor', label: 'Deductor' },
             { value: 'deductee', label: 'Deductee' },
           ]}
         />
-      </Space>
-      <Table columns={columns} dataSource={certificates} rowKey="id" loading={loading} scroll={{ x: 1200 }} />
+      </FilterBar>
+      <TableWrap>
+        <Table columns={columns} dataSource={certificates} rowKey="id" loading={loading} scroll={{ x: 1200 }} />
+      </TableWrap>
     </div>
   );
 }

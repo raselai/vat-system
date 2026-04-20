@@ -1,18 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, Space, Typography, message, Tag, Select } from 'antd';
-import { PlusOutlined, EyeOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { Table, message, Select } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { Invoice } from '../../types';
-
-const { Title } = Typography;
-
-const statusColors: Record<string, string> = {
-  draft: 'default',
-  approved: 'green',
-  cancelled: 'red',
-  locked: 'blue',
-};
+import { D, PageHeader, GradBtn, TonalBtn, TableWrap, FilterBar, StatusChip } from '../../styles/design';
 
 export default function InvoiceList() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -55,45 +46,82 @@ export default function InvoiceList() {
   };
 
   const columns = [
-    { title: 'Challan No', dataIndex: 'challanNo', key: 'challanNo' },
+    {
+      title: 'Challan No',
+      dataIndex: 'challanNo',
+      key: 'challanNo',
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.primary, fontSize: 13 }}>{v}</span>,
+    },
     {
       title: 'Type',
       dataIndex: 'invoiceType',
       key: 'invoiceType',
-      render: (type: string) => <Tag color={type === 'sales' ? 'blue' : 'orange'}>{type}</Tag>,
+      render: (v: string) => <StatusChip status={v} />,
     },
-    { title: 'Date', dataIndex: 'challanDate', key: 'challanDate', render: (d: string) => new Date(d).toLocaleDateString('en-GB') },
-    { title: 'Customer', key: 'customer', render: (_: unknown, r: Invoice) => r.customer?.name || '-' },
-    { title: 'Grand Total', dataIndex: 'grandTotal', key: 'grandTotal', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'VAT', dataIndex: 'vatTotal', key: 'vatTotal', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
+    {
+      title: 'Date',
+      dataIndex: 'challanDate',
+      key: 'challanDate',
+      render: (d: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{new Date(d).toLocaleDateString('en-GB')}</span>,
+    },
+    {
+      title: 'Customer',
+      key: 'customer',
+      render: (_: unknown, r: Invoice) => (
+        <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface }}>{r.customer?.name || '—'}</span>
+      ),
+    },
+    {
+      title: 'Grand Total',
+      dataIndex: 'grandTotal',
+      key: 'grandTotal',
+      render: (v: number) => (
+        <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.onSurface }}>
+          ৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      title: 'VAT',
+      dataIndex: 'vatTotal',
+      key: 'vatTotal',
+      render: (v: number) => (
+        <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>
+          ৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </span>
+      ),
+    },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => <Tag color={statusColors[status]}>{status}</Tag>,
+      render: (s: string) => <StatusChip status={s} />,
     },
     {
-      title: 'Actions',
+      title: '',
       key: 'actions',
       render: (_: unknown, record: Invoice) => (
-        <Space>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/invoices/${record.id}`)} />
-          <Button size="small" icon={<FilePdfOutlined />} onClick={() => handlePdf(record.id, record.challanNo)} />
-        </Space>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <TonalBtn icon="visibility" size="sm" onClick={() => navigate(`/invoices/${record.id}`)}>View</TonalBtn>
+          <TonalBtn icon="picture_as_pdf" size="sm" onClick={() => handlePdf(record.id, record.challanNo)}>PDF</TonalBtn>
+        </div>
       ),
     },
   ];
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>Musak 6.3 — Invoices (Challans)</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/invoices/new')}>
-          New Invoice
-        </Button>
-      </div>
-      <Space style={{ marginBottom: 16 }}>
-        <Select placeholder="Status" allowClear style={{ width: 140 }} onChange={setStatusFilter}
+    <div style={{ fontFamily: D.inter, color: D.onSurface }}>
+      <PageHeader
+        eyebrow="Musak 6.3"
+        title="Invoices (Challans)"
+        action={<GradBtn icon="add" onClick={() => navigate('/invoices/new')}>New Invoice</GradBtn>}
+      />
+      <FilterBar>
+        <Select
+          placeholder="All Statuses"
+          allowClear
+          style={{ width: 160 }}
+          onChange={setStatusFilter}
           options={[
             { value: 'draft', label: 'Draft' },
             { value: 'approved', label: 'Approved' },
@@ -101,14 +129,20 @@ export default function InvoiceList() {
             { value: 'locked', label: 'Locked' },
           ]}
         />
-        <Select placeholder="Type" allowClear style={{ width: 140 }} onChange={setTypeFilter}
+        <Select
+          placeholder="All Types"
+          allowClear
+          style={{ width: 160 }}
+          onChange={setTypeFilter}
           options={[
             { value: 'sales', label: 'Sales' },
             { value: 'purchase', label: 'Purchase' },
           ]}
         />
-      </Space>
-      <Table columns={columns} dataSource={invoices} rowKey="id" loading={loading} scroll={{ x: 1000 }} />
+      </FilterBar>
+      <TableWrap>
+        <Table columns={columns} dataSource={invoices} rowKey="id" loading={loading} scroll={{ x: 1000 }} />
+      </TableWrap>
     </div>
   );
 }

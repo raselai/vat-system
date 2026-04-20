@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, Space, Typography, message, Popconfirm, Tag } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, message, Popconfirm } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { Customer } from '../../types';
-
-const { Title } = Typography;
+import { D, PageHeader, GradBtn, TonalBtn, TableWrap, StatusChip } from '../../styles/design';
 
 export default function CustomerList() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -26,30 +24,6 @@ export default function CustomerList() {
 
   useEffect(() => { fetchCustomers(); }, []);
 
-  const columns = [
-    { title: 'Name', dataIndex: 'name', key: 'name' },
-    { title: 'BIN/NID', dataIndex: 'binNid', key: 'binNid' },
-    { title: 'Phone', dataIndex: 'phone', key: 'phone' },
-    {
-      title: 'VDS Entity',
-      key: 'isVdsEntity',
-      render: (_: unknown, record: Customer) =>
-        record.isVdsEntity ? <Tag color="orange">{record.vdsEntityType || 'Yes'}</Tag> : <Tag>No</Tag>,
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_: unknown, record: Customer) => (
-        <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => navigate(`/customers/${record.id}/edit`)} />
-          <Popconfirm title="Deactivate this customer?" onConfirm={() => handleDelete(record.id)}>
-            <Button size="small" icon={<DeleteOutlined />} danger />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
   const handleDelete = async (id: string) => {
     try {
       await api.delete(`/customers/${id}`);
@@ -60,15 +34,57 @@ export default function CustomerList() {
     }
   };
 
+  const columns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface }}>{v}</span>,
+    },
+    {
+      title: 'BIN / NID',
+      dataIndex: 'binNid',
+      key: 'binNid',
+      render: (v: string) => <span style={{ fontFamily: 'monospace', fontSize: 13, color: D.onSurfaceVar }}>{v || '—'}</span>,
+    },
+    {
+      title: 'Phone',
+      dataIndex: 'phone',
+      key: 'phone',
+      render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v || '—'}</span>,
+    },
+    {
+      title: 'VDS Entity',
+      key: 'isVdsEntity',
+      render: (_: unknown, record: Customer) =>
+        record.isVdsEntity
+          ? <StatusChip status={record.vdsEntityType || 'yes'} label={record.vdsEntityType || 'VDS'} />
+          : <StatusChip status="no" label="No" />,
+    },
+    {
+      title: '',
+      key: 'actions',
+      render: (_: unknown, record: Customer) => (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <TonalBtn icon="edit" size="sm" onClick={() => navigate(`/customers/${record.id}/edit`)}>Edit</TonalBtn>
+          <Popconfirm title="Deactivate this customer?" onConfirm={() => handleDelete(record.id)}>
+            <TonalBtn icon="delete" size="sm" danger>Deactivate</TonalBtn>
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>Customers</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/customers/new')}>
-          Add Customer
-        </Button>
-      </div>
-      <Table columns={columns} dataSource={customers} rowKey="id" loading={loading} />
+    <div style={{ fontFamily: D.inter, color: D.onSurface }}>
+      <PageHeader
+        eyebrow="Counterparties"
+        title="Customers & Suppliers"
+        action={<GradBtn icon="add" onClick={() => navigate('/customers/new')}>Add Customer</GradBtn>}
+      />
+      <TableWrap>
+        <Table columns={columns} dataSource={customers} rowKey="id" loading={loading} />
+      </TableWrap>
     </div>
   );
 }

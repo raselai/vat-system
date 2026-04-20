@@ -1,18 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, Space, Typography, message, Tag, Select, Popconfirm } from 'antd';
-import { PlusOutlined, CheckOutlined } from '@ant-design/icons';
+import { Table, message, Select, Popconfirm } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { TreasuryDeposit } from '../../types';
 import { markDeposited } from '../../services/vds';
-
-const { Title } = Typography;
-
-const statusColors: Record<string, string> = {
-  pending: 'default',
-  deposited: 'green',
-  verified: 'blue',
-};
+import { D, PageHeader, GradBtn, TonalBtn, TableWrap, FilterBar, StatusChip } from '../../styles/design';
 
 export default function DepositList() {
   const [deposits, setDeposits] = useState<TreasuryDeposit[]>([]);
@@ -47,52 +39,99 @@ export default function DepositList() {
   };
 
   const columns = [
-    { title: 'Challan No', dataIndex: 'challanNo', key: 'challanNo' },
-    { title: 'Date', dataIndex: 'depositDate', key: 'depositDate', render: (d: string) => new Date(d).toLocaleDateString('en-GB') },
-    { title: 'Bank', dataIndex: 'bankName', key: 'bankName' },
-    { title: 'Branch', dataIndex: 'bankBranch', key: 'bankBranch', render: (v: string) => v || '-' },
-    { title: 'Amount', dataIndex: 'totalAmount', key: 'totalAmount', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'Tax Month', dataIndex: 'taxMonth', key: 'taxMonth' },
     {
-      title: 'Certificates', key: 'certCount',
-      render: (_: unknown, r: TreasuryDeposit) => <Tag>{r.certificates?.length || 0} linked</Tag>,
+      title: 'Challan No',
+      dataIndex: 'challanNo',
+      key: 'challanNo',
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.primary, fontSize: 13 }}>{v}</span>,
     },
     {
-      title: 'Status', dataIndex: 'status', key: 'status',
-      render: (status: string) => <Tag color={statusColors[status]}>{status}</Tag>,
+      title: 'Date',
+      dataIndex: 'depositDate',
+      key: 'depositDate',
+      render: (d: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{new Date(d).toLocaleDateString('en-GB')}</span>,
     },
     {
-      title: 'Actions', key: 'actions',
+      title: 'Bank',
+      dataIndex: 'bankName',
+      key: 'bankName',
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface }}>{v}</span>,
+    },
+    {
+      title: 'Branch',
+      dataIndex: 'bankBranch',
+      key: 'bankBranch',
+      render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v || '—'}</span>,
+    },
+    {
+      title: 'Amount',
+      dataIndex: 'totalAmount',
+      key: 'totalAmount',
+      render: (v: number) => (
+        <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.onSurface }}>
+          ৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      title: 'Tax Month',
+      dataIndex: 'taxMonth',
+      key: 'taxMonth',
+      render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v}</span>,
+    },
+    {
+      title: 'Linked Certs',
+      key: 'certCount',
+      render: (_: unknown, r: TreasuryDeposit) => (
+        <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.primary }}>
+          {r.certificates?.length || 0}
+        </span>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (s: string) => <StatusChip status={s} />,
+    },
+    {
+      title: '',
+      key: 'actions',
       render: (_: unknown, record: TreasuryDeposit) => (
-        <Space>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           {record.status === 'pending' && (
             <Popconfirm title="Mark as deposited?" onConfirm={() => handleMarkDeposited(record.id)}>
-              <Button size="small" icon={<CheckOutlined />} type="primary">Deposited</Button>
+              <TonalBtn icon="check_circle" size="sm">Mark Deposited</TonalBtn>
             </Popconfirm>
           )}
-        </Space>
+        </div>
       ),
     },
   ];
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>Treasury Deposits</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/vds/deposits/new')}>
-          New Deposit
-        </Button>
-      </div>
-      <Space style={{ marginBottom: 16 }}>
-        <Select placeholder="Status" allowClear style={{ width: 140 }} onChange={setStatusFilter}
+    <div style={{ fontFamily: D.inter, color: D.onSurface }}>
+      <PageHeader
+        eyebrow="VDS Workflow"
+        title="Treasury Deposits"
+        action={<GradBtn icon="add" onClick={() => navigate('/vds/deposits/new')}>New Deposit</GradBtn>}
+      />
+      <FilterBar>
+        <Select
+          placeholder="All Statuses"
+          allowClear
+          style={{ width: 160 }}
+          onChange={setStatusFilter}
           options={[
             { value: 'pending', label: 'Pending' },
             { value: 'deposited', label: 'Deposited' },
             { value: 'verified', label: 'Verified' },
           ]}
         />
-      </Space>
-      <Table columns={columns} dataSource={deposits} rowKey="id" loading={loading} scroll={{ x: 1000 }} />
+      </FilterBar>
+      <TableWrap>
+        <Table columns={columns} dataSource={deposits} rowKey="id" loading={loading} scroll={{ x: 1000 }} />
+      </TableWrap>
     </div>
   );
 }

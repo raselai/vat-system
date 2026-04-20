@@ -1,24 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Button, Card, Typography, message, DatePicker, Input, InputNumber, Space, Divider, Table, Checkbox } from 'antd';
+import { message, DatePicker, Input, InputNumber, Table, Checkbox } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import { createDeposit } from '../../services/vds';
 import { VdsCertificate } from '../../types';
-
-const { Title, Text } = Typography;
+import { D, PageHeader, GradBtn, TonalBtn, SLCard, TableWrap, SummaryRow, SLDivider } from '../../styles/design';
 
 export default function DepositForm() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]         = useState(false);
   const [certificates, setCertificates] = useState<VdsCertificate[]>([]);
   const [selectedCertIds, setSelectedCertIds] = useState<string[]>([]);
-  const [challanNo, setChallanNo] = useState('');
+  const [challanNo, setChallanNo]     = useState('');
   const [depositDate, setDepositDate] = useState<string>(dayjs().format('YYYY-MM-DD'));
-  const [bankName, setBankName] = useState('');
-  const [bankBranch, setBankBranch] = useState('');
+  const [bankName, setBankName]       = useState('');
+  const [bankBranch, setBankBranch]   = useState('');
   const [accountCode, setAccountCode] = useState('');
   const [totalAmount, setTotalAmount] = useState(0);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes]             = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,35 +35,35 @@ export default function DepositForm() {
     setTotalAmount(Math.round(total * 100) / 100);
   };
 
+  const fmt = (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
   const certColumns = [
     {
-      title: '', key: 'select', width: 40,
+      title: '', key: 'select', width: 44,
       render: (_: unknown, r: VdsCertificate) => (
-        <Checkbox checked={selectedCertIds.includes(r.id)} onChange={e => toggleCertificate(r.id, e.target.checked)} />
+        <Checkbox
+          checked={selectedCertIds.includes(r.id)}
+          onChange={e => toggleCertificate(r.id, e.target.checked)}
+        />
       ),
     },
-    { title: 'Certificate No', dataIndex: 'certificateNo', key: 'certificateNo' },
-    { title: 'Counterparty', dataIndex: 'counterpartyName', key: 'counterpartyName' },
-    { title: 'VDS Amount', dataIndex: 'vdsAmount', key: 'vdsAmount', render: (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 }) },
-    { title: 'Tax Month', dataIndex: 'taxMonth', key: 'taxMonth' },
+    { title: 'Certificate No', dataIndex: 'certificateNo', key: 'certificateNo',
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.primary, fontSize: 13 }}>{v}</span> },
+    { title: 'Counterparty', dataIndex: 'counterpartyName', key: 'counterpartyName',
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface }}>{v}</span> },
+    { title: 'VDS Amount', dataIndex: 'vdsAmount', key: 'vdsAmount', align: 'right' as const,
+      render: (v: number) => <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.onSurface }}>৳ {fmt(v)}</span> },
+    { title: 'Tax Month', dataIndex: 'taxMonth', key: 'taxMonth',
+      render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v}</span> },
   ];
 
   const handleSubmit = async () => {
-    if (!challanNo || !bankName) {
-      message.error('Challan number and bank name are required');
-      return;
-    }
-    if (totalAmount <= 0) {
-      message.error('Total amount must be greater than 0');
-      return;
-    }
-
+    if (!challanNo || !bankName) return message.error('Challan number and bank name are required');
+    if (totalAmount <= 0) return message.error('Total amount must be greater than 0');
     setLoading(true);
     try {
       await createDeposit({
-        challanNo,
-        depositDate,
-        bankName,
+        challanNo, depositDate, bankName,
         bankBranch: bankBranch || undefined,
         accountCode: accountCode || undefined,
         totalAmount,
@@ -75,79 +74,122 @@ export default function DepositForm() {
       navigate('/vds/deposits');
     } catch (err: any) {
       message.error(err.response?.data?.error || 'Failed to create deposit');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <div>
-      <Title level={4}>New Treasury Deposit</Title>
+    <div style={{ fontFamily: D.inter, color: D.onSurface, maxWidth: 920, margin: '0 auto' }}>
+      <PageHeader
+        eyebrow="VDS Workflow"
+        title="New Treasury Deposit"
+        sub="Link finalized VDS certificates to a bank challan"
+      />
 
-      <Card title="Deposit Details" style={{ marginBottom: 16 }}>
-        <Space size="large" wrap>
-          <div>
-            <Text strong>Treasury Challan No: </Text>
-            <Input value={challanNo} onChange={e => setChallanNo(e.target.value)} placeholder="e.g. TC-2026-001" style={{ width: 200 }} />
-          </div>
-          <div>
-            <Text strong>Date: </Text>
-            <DatePicker value={dayjs(depositDate)} onChange={(d) => setDepositDate(d?.format('YYYY-MM-DD') || '')} />
-          </div>
-        </Space>
-        <div style={{ marginTop: 16 }}>
-          <Space size="large" wrap>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Deposit details */}
+        <SLCard style={{ padding: '1.5rem' }}>
+          <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 16 }}>
+            Deposit Details
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div>
-              <Text strong>Bank Name: </Text>
-              <Input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="Bank name" style={{ width: 220 }} />
-            </div>
-            <div>
-              <Text strong>Branch: </Text>
-              <Input value={bankBranch} onChange={e => setBankBranch(e.target.value)} placeholder="Branch (optional)" style={{ width: 200 }} />
+              <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 6 }}>Treasury Challan No</p>
+              <Input value={challanNo} onChange={e => setChallanNo(e.target.value)} placeholder="e.g. TC-2026-001" />
             </div>
             <div>
-              <Text strong>Account Code: </Text>
-              <Input value={accountCode} onChange={e => setAccountCode(e.target.value)} placeholder="Govt account code" style={{ width: 160 }} />
-            </div>
-          </Space>
-        </div>
-      </Card>
-
-      <Card title="Link VDS Certificates (Deductor)" style={{ marginBottom: 16 }}>
-        <Table columns={certColumns} dataSource={certificates} rowKey="id" pagination={false} scroll={{ x: 600 }} size="small" />
-      </Card>
-
-      <Card style={{ marginBottom: 16 }}>
-        <Text strong>Notes: </Text>
-        <Input.TextArea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional notes" />
-      </Card>
-
-      <Card>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-          <div style={{ minWidth: 300 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span>Linked Certificates:</span><span>{selectedCertIds.length}</span>
-            </div>
-            <Divider style={{ margin: '8px 0' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 16 }}>
-              <span>Total Amount:</span>
-              <span>{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 6 }}>Deposit Date</p>
+              <DatePicker
+                value={dayjs(depositDate)}
+                onChange={(d) => setDepositDate(d?.format('YYYY-MM-DD') || '')}
+                style={{ width: '100%' }}
+              />
             </div>
           </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+            <div>
+              <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 6 }}>Bank Name</p>
+              <Input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="Bank name" />
+            </div>
+            <div>
+              <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 6 }}>Branch (optional)</p>
+              <Input value={bankBranch} onChange={e => setBankBranch(e.target.value)} placeholder="Branch name" />
+            </div>
+            <div>
+              <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 6 }}>Govt Account Code</p>
+              <Input value={accountCode} onChange={e => setAccountCode(e.target.value)} placeholder="Account code" />
+            </div>
+          </div>
+        </SLCard>
+
+        {/* Certificates table */}
+        <SLCard style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: D.onSurfaceVar }}>
+              Link VDS Certificates (Deductor)
+            </p>
+            {selectedCertIds.length > 0 && (
+              <span style={{ fontFamily: D.manrope, fontSize: 12, fontWeight: 700, color: D.tertiary }}>
+                {selectedCertIds.length} selected
+              </span>
+            )}
+          </div>
+          <TableWrap>
+            <Table columns={certColumns} dataSource={certificates} rowKey="id" pagination={false} scroll={{ x: 600 }} size="small" />
+          </TableWrap>
+        </SLCard>
+
+        {/* Summary + override + notes */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <SLCard style={{ padding: '1.5rem' }}>
+            <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 16 }}>
+              Amount Summary
+            </p>
+            <SummaryRow label="Linked Certificates" value={selectedCertIds.length} />
+            <SLDivider />
+            {/* Gradient total */}
+            <div style={{ background: D.grad, borderRadius: 12, padding: '1rem 1.25rem', marginBottom: 16 }}>
+              <p style={{ fontFamily: D.manrope, fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)', marginBottom: 6 }}>
+                Total Amount
+              </p>
+              <p style={{ fontFamily: D.manrope, fontWeight: 800, fontSize: '1.75rem', letterSpacing: '-0.04em', lineHeight: 1, color: '#fff' }}>
+                ৳ {fmt(totalAmount)}
+              </p>
+            </div>
+            <div>
+              <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 6 }}>
+                Override Amount
+              </p>
+              <InputNumber
+                value={totalAmount}
+                min={0}
+                onChange={v => setTotalAmount(v || 0)}
+                style={{ width: '100%' }}
+                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              />
+            </div>
+          </SLCard>
+
+          <SLCard style={{ padding: '1.5rem' }}>
+            <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 16 }}>
+              Notes
+            </p>
+            <Input.TextArea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              rows={5}
+              placeholder="Optional notes about this deposit..."
+            />
+          </SLCard>
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <Text strong>Override Amount: </Text>
-          <InputNumber value={totalAmount} min={0} onChange={v => setTotalAmount(v || 0)} style={{ width: 200 }}
-            formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
-        </div>
-        <Divider />
-        <Space>
-          <Button type="primary" size="large" loading={loading} onClick={handleSubmit}>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <GradBtn icon="account_balance" loading={loading} onClick={handleSubmit}>
             Create Deposit
-          </Button>
-          <Button size="large" onClick={() => navigate('/vds/deposits')}>Cancel</Button>
-        </Space>
-      </Card>
+          </GradBtn>
+          <TonalBtn onClick={() => navigate('/vds/deposits')}>Cancel</TonalBtn>
+        </div>
+      </div>
     </div>
   );
 }

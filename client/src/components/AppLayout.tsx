@@ -95,13 +95,23 @@ export default function AppLayout() {
       {/* Logo */}
       <div className={`${isMobile || !collapsed ? 'px-6' : 'px-3'} mb-8`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white flex-shrink-0">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #001d52, #00307e)' }}
+          >
             <MaterialIcon name="account_balance" filled />
           </div>
           {(isMobile || !collapsed) && (
             <div className="min-w-0">
-              <h1 className="text-lg font-bold text-primary tracking-tight truncate">Sovereign Ledger</h1>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Compliance: Active</p>
+              <h1
+                className="text-base font-black tracking-tight truncate"
+                style={{ fontFamily: "'Manrope', sans-serif", color: '#001d52', letterSpacing: '-0.03em' }}
+              >
+                Sovereign Ledger
+              </h1>
+              <p className="text-[9px] uppercase tracking-widest font-bold" style={{ color: '#006a4e' }}>
+                ● Compliance Active
+              </p>
             </div>
           )}
         </div>
@@ -115,24 +125,36 @@ export default function AppLayout() {
             <button
               key={item.key}
               onClick={() => handleNav(item.key)}
-              className={`w-full flex items-center gap-3 py-3 px-3 rounded-xl transition-colors duration-200 text-left ${
-                active
-                  ? 'text-primary font-bold bg-primary/5 border-l-[3px] border-primary'
-                  : 'text-slate-500 font-medium hover:bg-primary/5'
-              }`}
+              className={`w-full flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all duration-150 text-left`}
+              style={{
+                fontFamily: "'Manrope', sans-serif",
+                fontWeight: active ? 700 : 500,
+                fontSize: 13,
+                color: active ? '#001d52' : '#74777f',
+                background: active ? 'rgba(0,29,82,0.06)' : 'transparent',
+                borderLeft: active ? '3px solid #001d52' : '3px solid transparent',
+                border: 'none',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+              onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(0,29,82,0.04)'; }}
+              onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
-              <MaterialIcon name={item.icon} className="text-[22px]" />
-              {(isMobile || !collapsed) && <span className="text-sm truncate">{item.label}</span>}
+              <MaterialIcon name={item.icon} className="text-[20px]" />
+              {(isMobile || !collapsed) && <span className="truncate">{item.label}</span>}
             </button>
           );
         })}
       </nav>
 
       {/* Bottom */}
-      <div className={`${isMobile || !collapsed ? 'px-6' : 'px-3'} mt-auto pt-6 pb-6 border-t border-slate-100 space-y-3`}>
+      <div className={`${isMobile || !collapsed ? 'px-6' : 'px-3'} mt-auto pt-6 pb-6 space-y-3`}
+        style={{ borderTop: '1px solid rgba(196,198,207,0.18)' }}
+      >
         <button
           onClick={() => { handleNav('/invoices/new'); }}
-          className="w-full bg-primary text-on-primary py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity text-sm"
+          className="w-full text-white py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity text-sm"
+          style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 700, background: 'linear-gradient(135deg, #001d52, #00307e)' }}
         >
           <MaterialIcon name="add" className="text-sm" />
           {(isMobile || !collapsed) && 'New Invoice'}
@@ -141,7 +163,10 @@ export default function AppLayout() {
         {(isMobile || !collapsed) && (
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 py-2 text-slate-500 hover:text-error transition-colors text-sm font-medium text-left px-1"
+            className="w-full flex items-center gap-3 py-2 transition-colors text-sm font-medium text-left px-1"
+            style={{ color: '#74777f', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Manrope', sans-serif" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#ba1a1a'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#74777f'; }}
           >
             <MaterialIcon name="logout" className="text-xl" />
             <span>Log Out</span>

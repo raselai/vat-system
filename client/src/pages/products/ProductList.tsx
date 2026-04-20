@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, Space, Typography, message, Popconfirm, Tag } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, message, Popconfirm } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { Product } from '../../types';
-
-const { Title } = Typography;
+import { D, PageHeader, GradBtn, TonalBtn, TableWrap, StatusChip } from '../../styles/design';
 
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,33 +24,6 @@ export default function ProductList() {
 
   useEffect(() => { fetchProducts(); }, []);
 
-  const columns = [
-    { title: 'Code', dataIndex: 'productCode', key: 'productCode', width: 80 },
-    { title: 'Name', dataIndex: 'name', key: 'name' },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type: string) => <Tag color={type === 'product' ? 'blue' : 'green'}>{type}</Tag>,
-    },
-    { title: 'HS Code', dataIndex: 'hsCode', key: 'hsCode' },
-    { title: 'VAT %', dataIndex: 'vatRate', key: 'vatRate' },
-    { title: 'SD %', dataIndex: 'sdRate', key: 'sdRate' },
-    { title: 'Unit Price', dataIndex: 'unitPrice', key: 'unitPrice', render: (v: number) => v.toLocaleString() },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_: unknown, record: Product) => (
-        <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => navigate(`/products/${record.id}/edit`)} />
-          <Popconfirm title="Deactivate this product?" onConfirm={() => handleDelete(record.id)}>
-            <Button size="small" icon={<DeleteOutlined />} danger />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
   const handleDelete = async (id: string) => {
     try {
       await api.delete(`/products/${id}`);
@@ -63,15 +34,80 @@ export default function ProductList() {
     }
   };
 
+  const columns = [
+    {
+      title: 'Code',
+      dataIndex: 'productCode',
+      key: 'productCode',
+      width: 90,
+      render: (v: string) => v ? <code style={{ fontSize: 12, background: D.surfaceLow, padding: '2px 8px', borderRadius: 6, fontFamily: 'monospace', color: D.onSurfaceVar }}>{v}</code> : <span style={{ color: D.onSurfaceVar }}>—</span>,
+    },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (v: string) => <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface }}>{v}</span>,
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      render: (v: string) => <StatusChip status={v} />,
+    },
+    {
+      title: 'HS Code',
+      dataIndex: 'hsCode',
+      key: 'hsCode',
+      render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v || '—'}</span>,
+    },
+    {
+      title: 'VAT %',
+      dataIndex: 'vatRate',
+      key: 'vatRate',
+      render: (v: number) => (
+        <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.primary }}>{v}%</span>
+      ),
+    },
+    {
+      title: 'SD %',
+      dataIndex: 'sdRate',
+      key: 'sdRate',
+      render: (v: number) => <span style={{ color: D.onSurfaceVar }}>{v > 0 ? `${v}%` : '—'}</span>,
+    },
+    {
+      title: 'Unit Price',
+      dataIndex: 'unitPrice',
+      key: 'unitPrice',
+      render: (v: number) => (
+        <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface }}>
+          ৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      render: (_: unknown, record: Product) => (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <TonalBtn icon="edit" size="sm" onClick={() => navigate(`/products/${record.id}/edit`)}>Edit</TonalBtn>
+          <Popconfirm title="Deactivate this product?" onConfirm={() => handleDelete(record.id)}>
+            <TonalBtn icon="delete" size="sm" danger>Deactivate</TonalBtn>
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>Products</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/products/new')}>
-          Add Product
-        </Button>
-      </div>
-      <Table columns={columns} dataSource={products} rowKey="id" loading={loading} scroll={{ x: 800 }} />
+    <div style={{ fontFamily: D.inter, color: D.onSurface }}>
+      <PageHeader
+        eyebrow="Inventory"
+        title="Products & Services"
+        action={<GradBtn icon="add" onClick={() => navigate('/products/new')}>Add Product</GradBtn>}
+      />
+      <TableWrap>
+        <Table columns={columns} dataSource={products} rowKey="id" loading={loading} scroll={{ x: 800 }} />
+      </TableWrap>
     </div>
   );
 }

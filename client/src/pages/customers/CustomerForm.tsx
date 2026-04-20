@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, Typography, message, Switch, Select, Space } from 'antd';
+import { Form, Input, message, Switch, Select } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
-
-const { Title } = Typography;
+import { D, PageHeader, GradBtn, TonalBtn, SLCard } from '../../styles/design';
 
 export default function CustomerForm() {
   const [form] = Form.useForm();
@@ -41,45 +40,56 @@ export default function CustomerForm() {
   };
 
   return (
-    <div>
-      <Title level={4}>{isEdit ? 'Edit Customer' : 'New Customer'}</Title>
-      <Card style={{ maxWidth: 600 }}>
-        <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ isVdsEntity: false }}>
+    <div style={{ fontFamily: D.inter, color: D.onSurface, maxWidth: 640, margin: '0 auto' }}>
+      <PageHeader
+        eyebrow="Counterparties"
+        title={isEdit ? 'Edit Customer' : 'New Customer / Supplier'}
+      />
+      <SLCard style={{ padding: '1.75rem' }}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          initialValues={{ isVdsEntity: false }}
+        >
           <Form.Item name="name" label="Customer Name" rules={[{ required: true, min: 2 }]}>
-            <Input />
+            <Input placeholder="Full legal name" />
           </Form.Item>
           <Form.Item name="binNid" label="BIN / NID">
-            <Input placeholder="13-digit BIN or 10-17 digit NID" />
+            <Input
+              placeholder="13-digit BIN or 10–17 digit NID"
+              style={{ fontFamily: 'monospace', letterSpacing: '0.04em' }}
+            />
           </Form.Item>
-          <Form.Item name="phone" label="Phone">
-            <Input />
-          </Form.Item>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item name="phone" label="Phone">
+              <Input placeholder="+880..." />
+            </Form.Item>
+            <Form.Item name="isVdsEntity" label="VDS Entity" valuePropName="checked">
+              <Switch onChange={setIsVds} />
+            </Form.Item>
+          </div>
           <Form.Item name="address" label="Address">
-            <Input.TextArea rows={3} />
-          </Form.Item>
-          <Form.Item name="isVdsEntity" label="VDS Entity" valuePropName="checked">
-            <Switch onChange={setIsVds} />
+            <Input.TextArea rows={3} placeholder="Street, city, district" />
           </Form.Item>
           {isVds && (
             <Form.Item name="vdsEntityType" label="VDS Entity Type">
               <Select options={[
-                { value: 'bank', label: 'Bank' },
-                { value: 'govt', label: 'Government' },
-                { value: 'ngo', label: 'NGO' },
+                { value: 'bank',           label: 'Bank' },
+                { value: 'govt',           label: 'Government' },
+                { value: 'ngo',            label: 'NGO' },
                 { value: 'listed_company', label: 'Listed Company' },
-              ]} />
+              ]} placeholder="Select entity type" />
             </Form.Item>
           )}
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                {isEdit ? 'Update' : 'Create'}
-              </Button>
-              <Button onClick={() => navigate('/customers')}>Cancel</Button>
-            </Space>
-          </Form.Item>
+          <div style={{ display: 'flex', gap: 10, paddingTop: 8 }}>
+            <GradBtn type="submit" icon={isEdit ? 'save' : 'person_add'} loading={loading}>
+              {isEdit ? 'Update' : 'Add Customer'}
+            </GradBtn>
+            <TonalBtn onClick={() => navigate('/customers')}>Cancel</TonalBtn>
+          </div>
         </Form>
-      </Card>
+      </SLCard>
     </div>
   );
 }
