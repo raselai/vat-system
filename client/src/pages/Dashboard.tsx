@@ -128,9 +128,9 @@ export default function Dashboard() {
     setLoading(true);
     Promise.all([
       getVatSummary(dayjs().format('YYYY-MM')).catch(() => null),
-      api.get('/invoices').catch(() => ({ data: { data: [] } })),
+      api.get('/invoices').catch(() => ({ data: { data: { invoices: [] } } })),
     ]).then(([vat, iRes]) => {
-      const invoices: Invoice[] = iRes.data.data || [];
+      const invoices: Invoice[] = iRes.data.data.invoices || [];
       const sales     = invoices.filter(i => i.invoiceType === 'sales');
       const purchases = invoices.filter(i => i.invoiceType === 'purchase');
       setVatData(vat);
