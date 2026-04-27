@@ -9,7 +9,10 @@ import api from '../../services/api';
 import { Invoice, InvoiceItem, Product, Company } from '../../types';
 import { calculateLineItem, calculateTotals } from '../../utils/vatCalc';
 import { useCompany } from '../../contexts/CompanyContext';
-import { D, GradBtn, TonalBtn, BackBtn, SLCard, StatusChip, SummaryRow, SLDivider } from '../../styles/design';
+import { D, GradBtn, TonalBtn, BackBtn, SLCard, StatusChip, SummaryRow, SLDivider, Icon } from '../../styles/design';
+import PaymentForm from '../accounts/PaymentForm';
+import { deletePayment } from '../../services/payment';
+import { Payment } from '../../types';
 
 function fmt(v: number) {
   return Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -32,6 +35,7 @@ export default function InvoiceDetail() {
   const [editItems, setEditItems]   = useState<EditItem[]>([]);
   const [editCustomerId, setEditCustomerId] = useState<string | undefined>();
   const [editDate, setEditDate]     = useState<string>('');
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   const fetchInvoice = async () => {
     setLoading(true);
@@ -278,6 +282,68 @@ export default function InvoiceDetail() {
             </SLCard>
           )}
         </div>
+      )}
+
+      {/* ── Payments section ── */}
+      {!editMode && (() => {
+        const payments: Payment[] = (invoice as any).payments || [];
+        const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
+        const outstanding = Math.max(0, invoice.netReceivable - totalPaid);
+        return (
+          <SLCard style={{ padding: 24, maxWidth: 900, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: D.onSurfaceVar, margin: 0 }}>Payments</p>
+                <p style={{ fontFamily: D.manrope, fontSize: 13, color: outstanding > 0 ? D.red : D.tertiary, fontWeight: 700, margin: '4px 0 0' }}>
+                  Outstanding: ৳ {outstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              {invoice.status !== 'cancelled' && outstanding > 0 && (
+                <TonalBtn icon="payments" onClick={() => setShowPaymentForm(true)}>Record Payment</TonalBtn>
+              )}
+            </div>
+            {payments.length === 0 ? (
+              <p style={{ fontFamily: D.inter, fontSize: 13, color: D.onSurfaceVar, margin: 0 }}>No payments recorded yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {payments.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: D.surfaceLow, borderRadius: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <Icon name="payments" size={18} style={{ color: D.tertiary }} />
+                      <div>
+                        <p style={{ fontFamily: D.manrope, fontWeight: 700, fontSize: 13, color: D.onSurface, margin: 0 }}>
+                          ৳ {p.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </p>
+                        <p style={{ fontFamily: D.inter, fontSize: 11, color: D.onSurfaceVar, margin: 0 }}>
+                          {new Date(p.paymentDate).toLocaleDateString('en-GB')} · {p.paymentMethod.replace('_', ' ')}
+                          {p.reference ? ` · ${p.reference}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <Popconfirm title="Delete this payment?" onConfirm={async () => {
+                      try {
+                        await deletePayment(p.id);
+                        message.success('Payment deleted');
+                        fetchInvoice();
+                      } catch { message.error('Failed to delete payment'); }
+                    }}>
+                      <TonalBtn icon="delete" danger size="sm">Delete</TonalBtn>
+                    </Popconfirm>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SLCard>
+        );
+      })()}
+
+      {showPaymentForm && (
+        <PaymentForm
+          invoiceId={id!}
+          outstanding={Math.max(0, invoice.netReceivable - ((invoice as any).payments || []).reduce((s: number, p: Payment) => s + p.amount, 0))}
+          onSuccess={() => { setShowPaymentForm(false); fetchInvoice(); }}
+          onClose={() => setShowPaymentForm(false)}
+        />
       )}
 
       {/* ── Challan Preview (government format — must not be changed) ── */}

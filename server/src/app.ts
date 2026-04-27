@@ -12,6 +12,8 @@ import auditLogRoutes from './routes/auditLog.routes';
 import importExportRoutes from './routes/importExport.routes';
 import backupRoutes from './routes/backup.routes';
 import reportsRoutes from './routes/reports.routes';
+import accountsRoutes from './routes/accounts.routes';
+import tdsRoutes from './routes/tds.routes';
 
 const app = express();
 
@@ -50,5 +52,7 @@ app.use('/api/v1/audit-logs', auditLogRoutes);
 app.use('/api/v1', importExportRoutes);
 app.use('/api/v1/backup', backupRoutes);
 app.use('/api/v1/reports', reportsRoutes);
+app.use('/api/v1/accounts', accountsRoutes);
+app.use('/api/v1/tds', tdsRoutes);
 
 export default app;

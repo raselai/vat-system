@@ -76,13 +76,45 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
 ### Client (`client/`)
 
 - **Stack**: React 18 + Vite + TypeScript + Ant Design 5 + Tailwind CSS
-- **Design system**: "Sovereign Ledger" branding — green primary (`#00503a`), Plus Jakarta Sans headlines, Inter body, Material Symbols Outlined icons. Color tokens in `tailwind.config.js` using M3 palette
+- **Design system**: "Sovereign Ledger" branding — navy primary (`#001d52`), Compliance Green tertiary (`#006a4e`), Manrope headlines (Plus Jakarta Sans fallback), Inter body, Material Symbols Outlined icons. Color tokens in `tailwind.config.js` using M3 palette. No 1px solid borders — use tonal surface layers (`surface-container-lowest` → `surface-container-high`) for depth. Primary CTAs use a 135° gradient from `primary` to `primary-container`
 - **Auth flow**: `AuthContext` manages JWT tokens in localStorage. `ProtectedRoute` wraps authenticated routes. `AuthContext` exposes `updateUser(patch: Partial<User>)` to sync state after profile edits without a re-fetch
 - **Company context**: `CompanyContext` tracks the active company. `client/src/services/api.ts` auto-attaches `Authorization` and `x-company-id` headers on every request via axios interceptors. Both tokens and the active company ID are stored in `localStorage` (`accessToken`, `refreshToken`, `activeCompanyId`). The interceptor also handles silent token refresh on 401.
 - **Routing**: React Router v7. `AppLayout` provides sidebar + header shell; pages render via `<Outlet />`
 - **Vite proxy**: `/api` forwarded to `http://localhost:4000` with no path rewrite — client service calls use paths like `/api/v1/invoices`
 - **Tailwind + Ant Design**: Tailwind preflight disabled (`corePlugins.preflight: false`). Ant Design table overrides in `client/src/index.css`
 - **Static assets**: `client/Image/` — government logo (`Logo.png`) used in challan preview. Import with `import logoUrl from '../../Image/Logo.png'` (Vite handles hashing). `vite-env.d.ts` already includes image type declarations
+- **Design component library**: `client/src/styles/design.tsx` — shared micro-components and design tokens. Import from here first before writing inline styles or new components. Exports:
+  - `D` — all design token constants (colors, shadows, font stacks)
+  - `Icon` — wrapper for Material Symbols Outlined
+  - `PageHeader` — page title block with optional eyebrow, subtitle, and action slot
+  - `GradBtn` / `TonalBtn` / `BackBtn` — primary gradient CTA, secondary tonal, back nav
+  - `SLCard` / `TableWrap` — white ambient-shadow card and table container
+  - `FilterBar` / `CardSection` / `SLDivider` / `FormActions` — layout helpers
+  - `StatusChip` — pill badge for entity statuses (uses `STATUS_PALETTE` keyed by status string)
+  - `SummaryRow` / `MoneyDisplay` — key-value row and large monetary figure display
+- **Design reference**: `DESIGN.md` in repo root is the source of truth for design decisions (no-border rule, surface hierarchy, glassmorphism, typography). Consult it before adding new visual patterns
+
+### AR/AP Module (`/api/v1/accounts`)
+
+Tracks payments against invoices and exposes aging summaries. No separate data entry table beyond the `payments` table.
+
+- **Payment recording**: `POST /accounts/payments` — validates `amount ≤ outstanding balance` (invoice `netReceivable − SUM(existing payments)`). Hard delete only (`DELETE /accounts/payments/:id`).
+- **AR aging** (`GET /accounts/ar`): groups sales invoices by `customerId`, buckets outstanding balance into 0-30 / 31-60 / 61-90 / 90+ days past `challanDate`
+- **AP aging** (`GET /accounts/ap`): same but for purchase invoices (supplier payables)
+- **RBAC**: GET endpoints (ar, ap, payments list) — any role. POST/DELETE payments — `requireRole('admin')` + `auditLog`
+- **Client pages**: `client/src/pages/accounts/ArPage.tsx`, `ApPage.tsx`. Payment entry via `PaymentForm.tsx` modal rendered inside `InvoiceDetail.tsx` — not a standalone route
+- **Outstanding balance** shown live in `InvoiceDetail` payments section: recalculates after each payment create/delete
+
+### TDS Module (`/api/v1/tds`)
+
+Mirrors VDS exactly. Income Tax — Tax Deducted at Source — monthly deduct → deposit → verify cycle. Does **not** cover annual income tax returns.
+
+- **TDS Deductions** (`tds_deductions`): draft → finalized → cancelled. Number format `TDS-{fiscal_year}-{seq padded 4}`. Fields: `sectionCode` (free-form string, e.g. `"52"`, `"52A"`), `deducteeTin` (exactly 12 digits — vs 13-digit BIN for VAT), `grossAmount`, `tdsRate`, `tdsAmount`
+- **TDS Payments** (`tds_payments`): pending → deposited → verified. Linked to deductions via `tds_deduction_payments` junction table (upsert-safe). `createTdsPayment` accepts `deductionIds[]` to link in the same transaction
+- **Summary**: `GET /tds/summary?taxMonth=YYYY-MM` → `{ totalDeductions, totalDeducted, totalDeposited, pendingDeposit, paymentCount }`
+- **RBAC**: GET endpoints — any role. All mutations (create, update, finalize, cancel, mark-deposited, link-deductions) — `requireRole('admin')` + `auditLog`
+- **Client pages**: `client/src/pages/tds/` — `DeductionList`, `DeductionForm`, `TdsPaymentList`, `TdsPaymentForm`. `TdsPaymentForm` loads all finalized deductions as a selectable checkbox table; selecting them auto-sums `totalAmount` (overrideable)
+- **Server files**: `server/src/services/tds.service.ts`, `validators/tds.validator.ts`, `controllers/tds.controller.ts`, `routes/tds.routes.ts`
 
 ### VDS Module (`/api/v1/vds`)
 
@@ -174,6 +206,15 @@ Reports:
   GET /reports/<type>?taxMonth=        (used by ReportsPage tabs)
   GET /reports/<type>/pdf|xlsx         (file download, same underlying query)
 
+AR/AP flow:
+  Sales invoice created → InvoiceDetail → Record Payment (amount ≤ outstanding)
+  → Outstanding balance recalculates → ArPage shows updated aging bucket
+
+TDS flow:
+  New TDS Deduction (draft) → Finalize
+  → New TDS Payment → link finalized deduction IDs → pending
+  → Mark Deposited → GET /tds/summary shows updated totals
+
 Audit:
   Any mutating request → auditLog middleware → append to audit_logs
 ```
@@ -191,6 +232,8 @@ Non-negotiable — from NBR (National Board of Revenue) regulations:
 - **Treasury deposit status**: `pending` → `deposited` → `verified`. Only pending editable
 - **VAT return status**: `draft` → `reviewed` → `submitted` → `locked`. Admin-only beyond `draft`. No reversals
 - **VAT calc**: Always use the centralized engine — never inline math. Monetary values `DECIMAL(14,2)`, quantities `DECIMAL(14,3)`, always `round2()`
+- **TIN**: 12 numeric digits (income tax). Distinct from BIN (13 digits, VAT). Both validated via regex at all entry points
+- **TDS deduction number**: `TDS-{fiscal_year}-{seq padded 4}` per company, generated inside a transaction (count-based, not FOR UPDATE lock)
 - **Multi-company isolation**: Every query must be scoped by `company_id`. Never leak cross-company data
 
 ### VAT Calculation Modes (`vatCalc.service.ts`)
@@ -205,10 +248,14 @@ Non-negotiable — from NBR (National Board of Revenue) regulations:
 - TypeScript strict mode on both client and server
 - `tax_month`: `YYYY-MM`. `fiscal_year`: `YYYY-YYYY`
 - Prisma models use `@map()` for snake_case DB columns; TypeScript uses camelCase
-- Server BigInt IDs: Prisma returns `BigInt` — always serialize to string before JSON responses
+- Server BigInt IDs: Prisma returns `BigInt` — always serialize to string before JSON responses. When passing `req.params.id` to `BigInt()`, cast first: `BigInt(req.params.id as string)` — TypeScript types it as `string | string[]` otherwise
 - Client types: `client/src/types/index.ts`
 - UI components: Ant Design for data display (Table, Form, Select, Descriptions); Tailwind for layout and spacing
 - Icons: Material Symbols Outlined (Google Fonts CDN in `index.html`) — not Ant Design icons
+
+## Tests
+
+There is no test framework configured in this project (no Jest, Vitest, or similar). Type-checking (`npx tsc --noEmit`) is the primary correctness check. Run it after every change.
 
 ## Shared Domain Utilities (`server/src/utils/validators.ts`)
 

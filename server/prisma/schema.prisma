@@ -25,6 +25,9 @@ model User {
   generatedReturns VatReturn[] @relation("vatReturnGenerator")
   reviewedReturns  VatReturn[] @relation("vatReturnReviewer")
   submittedReturns VatReturn[] @relation("vatReturnSubmitter")
+  createdPayments  Payment[]       @relation("paymentCreator")
+  createdTdsDeductions TdsDeduction[] @relation("tdsDeductionCreator")
+  createdTdsPayments   TdsPayment[]   @relation("tdsPaymentCreator")
 
   @@map("users")
 }
@@ -45,6 +48,7 @@ model Company {
   id              BigInt   @id @default(autoincrement())
   name            String   @db.VarChar(200)
   bin             String   @db.VarChar(13)
+  tin             String?  @db.VarChar(12)
   address         String   @db.Text
   challanPrefix   String   @default("CH") @map("challan_prefix") @db.VarChar(20)
   nextChallanNo   Int      @default(1) @map("next_challan_no")
@@ -59,6 +63,9 @@ model Company {
   vdsCertificates  VdsCertificate[]
   treasuryDeposits TreasuryDeposit[]
   vatReturns       VatReturn[]
+  payments         Payment[]
+  tdsDeductions    TdsDeduction[]
+  tdsPayments      TdsPayment[]
 
   @@map("companies")
 }
@@ -148,6 +155,8 @@ model Invoice {
   approver        User?            @relation("invoiceApprover", fields: [approvedBy], references: [id])
   items           InvoiceItem[]
   vdsCertificates VdsCertificate[]
+  payments        Payment[]
+  tdsDeductions   TdsDeduction[]
 
   @@unique([companyId, challanNo])
   @@map("invoices")
@@ -357,4 +366,104 @@ model AuditLog {
   @@index([companyId, createdAt])
   @@index([userId, createdAt])
   @@map("audit_logs")
+}
+
+model Payment {
+  id            BigInt   @id @default(autoincrement())
+  companyId     BigInt   @map("company_id")
+  invoiceId     BigInt   @map("invoice_id")
+  amount        Decimal  @db.Decimal(14, 2)
+  paymentDate   DateTime @map("payment_date") @db.Date
+  paymentMethod String   @map("payment_method") @db.VarChar(50)
+  reference     String?  @db.VarChar(100)
+  notes         String?  @db.Text
+  createdBy     BigInt   @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice  Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  creator  User    @relation("paymentCreator", fields: [createdBy], references: [id])
+
+  @@map("payments")
+}
+
+model TdsDeduction {
+  id              BigInt             @id @default(autoincrement())
+  companyId       BigInt             @map("company_id")
+  deductionNo     String             @map("deduction_no") @db.VarChar(50)
+  deductionDate   DateTime           @map("deduction_date") @db.Date
+  fiscalYear      String             @map("fiscal_year") @db.VarChar(9)
+  taxMonth        String             @map("tax_month") @db.VarChar(7)
+  sectionCode     String             @map("section_code") @db.VarChar(20)
+  deducteeName    String             @map("deductee_name") @db.VarChar(200)
+  deducteeTin     String             @map("deductee_tin") @db.VarChar(12)
+  deducteeAddress String?            @map("deductee_address") @db.Text
+  grossAmount     Decimal            @map("gross_amount") @db.Decimal(14, 2)
+  tdsRate         Decimal            @map("tds_rate") @db.Decimal(5, 2)
+  tdsAmount       Decimal            @map("tds_amount") @db.Decimal(14, 2)
+  invoiceId       BigInt?            @map("invoice_id")
+  status          TdsDeductionStatus @default(draft)
+  notes           String?            @db.Text
+  createdBy       BigInt             @map("created_by")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice  Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  creator  User     @relation("tdsDeductionCreator", fields: [createdBy], references: [id])
+  payments TdsDeductionPayment[]
+
+  @@unique([companyId, deductionNo])
+  @@map("tds_deductions")
+}
+
+model TdsPayment {
+  id          BigInt           @id @default(autoincrement())
+  companyId   BigInt           @map("company_id")
+  challanNo   String           @map("challan_no") @db.VarChar(50)
+  paymentDate DateTime         @map("payment_date") @db.Date
+  fiscalYear  String           @map("fiscal_year") @db.VarChar(9)
+  taxMonth    String           @map("tax_month") @db.VarChar(7)
+  bankName    String           @map("bank_name") @db.VarChar(200)
+  bankBranch  String?          @map("bank_branch") @db.VarChar(200)
+  accountCode String?          @map("account_code") @db.VarChar(50)
+  totalAmount Decimal          @map("total_amount") @db.Decimal(14, 2)
+  status      TdsPaymentStatus @default(pending)
+  notes       String?          @db.Text
+  createdBy   BigInt           @map("created_by")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator    User    @relation("tdsPaymentCreator", fields: [createdBy], references: [id])
+  deductions TdsDeductionPayment[]
+
+  @@unique([companyId, challanNo])
+  @@map("tds_payments")
+}
+
+model TdsDeductionPayment {
+  id          BigInt  @id @default(autoincrement())
+  deductionId BigInt  @map("deduction_id")
+  paymentId   BigInt  @map("payment_id")
+  amount      Decimal @db.Decimal(14, 2)
+
+  deduction TdsDeduction @relation(fields: [deductionId], references: [id], onDelete: Cascade)
+  payment   TdsPayment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@unique([deductionId, paymentId])
+  @@map("tds_deduction_payments")
+}
+
+enum TdsDeductionStatus {
+  draft
+  finalized
+  cancelled
+}
+
+enum TdsPaymentStatus {
+  pending
+  deposited
+  verified
 }

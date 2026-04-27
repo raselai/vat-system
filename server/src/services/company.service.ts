@@ -26,6 +26,7 @@ export async function createCompany(userId: bigint, input: CreateCompanyInput) {
       data: {
         name: input.name,
         bin: input.bin,
+        tin: input.tin,
         address: input.address,
         challanPrefix: input.challanPrefix || 'CH',
         fiscalYearStart: input.fiscalYearStart || 7,

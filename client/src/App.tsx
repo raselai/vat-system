@@ -28,6 +28,12 @@ import AuditLogPage from './pages/audit/AuditLogPage';
 import ImportExportPage from './pages/importExport/ImportExportPage';
 import ReportsPage from './pages/reports/ReportsPage';
 import SettingsPage from './pages/settings/SettingsPage';
+import ArPage from './pages/accounts/ArPage';
+import ApPage from './pages/accounts/ApPage';
+import DeductionList from './pages/tds/DeductionList';
+import DeductionForm from './pages/tds/DeductionForm';
+import TdsPaymentList from './pages/tds/TdsPaymentList';
+import TdsPaymentForm from './pages/tds/TdsPaymentForm';
 
 function App() {
   return (
@@ -67,6 +73,12 @@ function App() {
           <Route path="registers/purchase" element={<PurchaseRegister />} />
           <Route path="returns" element={<ReturnList />} />
           <Route path="returns/:id" element={<ReturnDetail />} />
+          <Route path="accounts/ar" element={<ArPage />} />
+          <Route path="accounts/ap" element={<ApPage />} />
+          <Route path="tds/deductions" element={<DeductionList />} />
+          <Route path="tds/deductions/new" element={<DeductionForm />} />
+          <Route path="tds/payments" element={<TdsPaymentList />} />
+          <Route path="tds/payments/new" element={<TdsPaymentForm />} />
           <Route path="audit-logs" element={<AuditLogPage />} />
           <Route path="import-export" element={<ImportExportPage />} />
           <Route path="reports" element={<ReportsPage />} />

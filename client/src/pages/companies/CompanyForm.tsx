@@ -53,13 +53,22 @@ export default function CompanyForm() {
           <Form.Item name="name" label="Company Name" rules={[{ required: true, min: 2 }]}>
             <Input placeholder="Legal company name" />
           </Form.Item>
-          <Form.Item
-            name="bin"
-            label="BIN (13 digits)"
-            rules={[{ required: true, pattern: /^\d{13}$/, message: 'BIN must be exactly 13 numeric digits' }]}
-          >
-            <Input maxLength={13} placeholder="0000000000000" style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }} />
-          </Form.Item>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item
+              name="bin"
+              label="BIN — VAT (13 digits)"
+              rules={[{ required: true, pattern: /^\d{13}$/, message: 'BIN must be exactly 13 numeric digits' }]}
+            >
+              <Input maxLength={13} placeholder="0000000000000" style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }} />
+            </Form.Item>
+            <Form.Item
+              name="tin"
+              label="TIN — Income Tax (12 digits)"
+              rules={[{ pattern: /^\d{12}$/, message: 'TIN must be exactly 12 numeric digits' }]}
+            >
+              <Input maxLength={12} placeholder="000000000000" style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }} />
+            </Form.Item>
+          </div>
           <Form.Item name="address" label="Registered Address" rules={[{ required: true, min: 5 }]}>
             <Input.TextArea rows={3} placeholder="Full registered address" />
           </Form.Item>

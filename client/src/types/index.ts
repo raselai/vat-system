@@ -22,6 +22,7 @@ export interface Company {
   id: string;
   name: string;
   bin: string;
+  tin?: string;
   address: string;
   challanPrefix: string;
   nextChallanNo: number;
@@ -344,4 +345,98 @@ export interface ReportVdsSummary {
   totalDeducted: number;
   totalDeposited: number;
   totalPending: number;
+}
+
+// ─── Payments / AR / AP ───────────────────────────────────────────────────────
+
+export interface Payment {
+  id: string;
+  companyId: string;
+  invoiceId: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: 'cash' | 'cheque' | 'bank_transfer' | 'mobile_banking';
+  reference?: string;
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface AgingEntry {
+  customerId: string | null;
+  customerName: string | null;
+  totalInvoiced: number;
+  totalPaid: number;
+  outstanding: number;
+  current: number;
+  days31_60: number;
+  days61_90: number;
+  over90: number;
+}
+
+// ─── TDS ──────────────────────────────────────────────────────────────────────
+
+export interface TdsDeduction {
+  id: string;
+  companyId: string;
+  deductionNo: string;
+  deductionDate: string;
+  fiscalYear: string;
+  taxMonth: string;
+  sectionCode: string;
+  deducteeName: string;
+  deducteeTin: string;
+  deducteeAddress?: string;
+  grossAmount: number;
+  tdsRate: number;
+  tdsAmount: number;
+  invoiceId: string | null;
+  status: 'draft' | 'finalized' | 'cancelled';
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  payments: TdsDeductionPaymentLink[];
+}
+
+export interface TdsDeductionPaymentLink {
+  id: string;
+  paymentId: string;
+  amount: number;
+  payment?: Partial<TdsPayment>;
+}
+
+export interface TdsPayment {
+  id: string;
+  companyId: string;
+  challanNo: string;
+  paymentDate: string;
+  fiscalYear: string;
+  taxMonth: string;
+  bankName: string;
+  bankBranch?: string;
+  accountCode?: string;
+  totalAmount: number;
+  status: 'pending' | 'deposited' | 'verified';
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  deductions: TdsPaymentDeductionLink[];
+}
+
+export interface TdsPaymentDeductionLink {
+  id: string;
+  deductionId: string;
+  amount: number;
+  deduction?: Partial<TdsDeduction>;
+}
+
+export interface TdsSummary {
+  taxMonth: string;
+  totalDeductions: number;
+  totalDeducted: number;
+  totalDeposited: number;
+  pendingDeposit: number;
+  paymentCount: number;
 }
