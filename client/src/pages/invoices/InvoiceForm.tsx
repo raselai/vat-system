@@ -44,7 +44,8 @@ export default function InvoiceForm() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [items, setItems] = useState<FormItem[]>([]);
-  const [invoiceType, setInvoiceType] = useState<'sales' | 'purchase'>('sales');
+  const initialType = new URLSearchParams(window.location.search).get('type');
+  const [invoiceType, setInvoiceType] = useState<'sales' | 'purchase'>(initialType === 'purchase' ? 'purchase' : 'sales');
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [challanDate, setChallanDate] = useState<string>(dayjs().format('YYYY-MM-DD'));
   const [vdsApplicable, setVdsApplicable] = useState(false);

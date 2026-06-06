@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { listDeductions, finalizeDeduction, cancelDeduction } from '../../services/tds';
 import { TdsDeduction } from '../../types';
 import { D, PageHeader, TableWrap, FilterBar, StatusChip, GradBtn, TonalBtn } from '../../styles/design';
+import HelpHint from '../../components/HelpHint';
+import { useLang } from '../../contexts/LanguageContext';
 
 const SECTION_OPTIONS = [
   { value: '52', label: '52 — Supply of goods' },
@@ -21,6 +23,7 @@ function fmt(v: number) {
 
 export default function DeductionList() {
   const navigate = useNavigate();
+  const { lang } = useLang();
   const [deductions, setDeductions] = useState<TdsDeduction[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -137,6 +140,11 @@ export default function DeductionList() {
         sub="Tax deducted at source — draft → finalize → link to payment"
         action={<GradBtn icon="add" onClick={() => navigate('/tds/deductions/new')}>New Deduction</GradBtn>}
       />
+      <HelpHint id="tds">
+        {lang === 'bn'
+          ? 'টিডিএস হলো উৎসে কর্তিত আয়কর (ভিডিএস-এর আয়কর সংস্করণ, ১২-সংখ্যার টিআইএন ব্যবহার করে)। একটি কর্তন তৈরি করুন, চূড়ান্ত করুন, তারপর একটি পেমেন্টের সাথে যুক্ত করুন।'
+          : 'TDS is income tax withheld at source (the income-tax cousin of VDS, using a 12-digit TIN). Create a deduction, finalize it, then link it to a payment.'}
+      </HelpHint>
       <FilterBar>
         <Select
           placeholder="All Statuses"

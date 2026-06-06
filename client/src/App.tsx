@@ -1,12 +1,16 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { CompanyProvider } from './contexts/CompanyContext';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
+import SetupWizard, { isWelcomeComplete } from './pages/onboarding/SetupWizard';
 import CompanyList from './pages/companies/CompanyList';
 import CompanyForm from './pages/companies/CompanyForm';
 import ProductList from './pages/products/ProductList';
@@ -35,58 +39,83 @@ import DeductionForm from './pages/tds/DeductionForm';
 import TdsPaymentList from './pages/tds/TdsPaymentList';
 import TdsPaymentForm from './pages/tds/TdsPaymentForm';
 
+// Authenticated shell: requires login + company context for all nested routes.
+function AuthedShell() {
+  return (
+    <ProtectedRoute>
+      <CompanyProvider>
+        <Outlet />
+      </CompanyProvider>
+    </ProtectedRoute>
+  );
+}
+
+// First-run gate: a brand-new user with no company is sent to the setup wizard.
+// Otherwise renders the full app chrome (AppLayout provides the <Outlet/>).
+function FirstRunGate() {
+  const { companies } = useAuth();
+  if (companies.length === 0 && !isWelcomeComplete()) {
+    return <Navigate to="/welcome" replace />;
+  }
+  return <AppLayout />;
+}
+
 function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <CompanyProvider>
-                <AppLayout />
-              </CompanyProvider>
-            </ProtectedRoute>
-          }
-        >
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="companies" element={<CompanyList />} />
-          <Route path="companies/new" element={<CompanyForm />} />
-          <Route path="companies/:id/edit" element={<CompanyForm />} />
-          <Route path="products" element={<ProductList />} />
-          <Route path="products/new" element={<ProductForm />} />
-          <Route path="products/:id/edit" element={<ProductForm />} />
-          <Route path="customers" element={<CustomerList />} />
-          <Route path="customers/new" element={<CustomerForm />} />
-          <Route path="customers/:id/edit" element={<CustomerForm />} />
-          <Route path="invoices" element={<InvoiceList />} />
-          <Route path="invoices/new" element={<InvoiceForm />} />
-          <Route path="invoices/:id" element={<InvoiceDetail />} />
-          <Route path="vds/certificates" element={<CertificateList />} />
-          <Route path="vds/certificates/new" element={<CertificateForm />} />
-          <Route path="vds/deposits" element={<DepositList />} />
-          <Route path="vds/deposits/new" element={<DepositForm />} />
-          <Route path="registers/sales" element={<SalesRegister />} />
-          <Route path="registers/purchase" element={<PurchaseRegister />} />
-          <Route path="returns" element={<ReturnList />} />
-          <Route path="returns/:id" element={<ReturnDetail />} />
-          <Route path="accounts/ar" element={<ArPage />} />
-          <Route path="accounts/ap" element={<ApPage />} />
-          <Route path="tds/deductions" element={<DeductionList />} />
-          <Route path="tds/deductions/new" element={<DeductionForm />} />
-          <Route path="tds/payments" element={<TdsPaymentList />} />
-          <Route path="tds/payments/new" element={<TdsPaymentForm />} />
-          <Route path="audit-logs" element={<AuditLogPage />} />
-          <Route path="import-export" element={<ImportExportPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Authenticated */}
+          <Route element={<AuthedShell />}>
+            {/* Full-screen onboarding (no sidebar) */}
+            <Route path="/welcome" element={<SetupWizard />} />
+
+            {/* Main app (with sidebar + first-run gate) */}
+            <Route element={<FirstRunGate />}>
+              <Route path="/home" element={<Home />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/companies" element={<CompanyList />} />
+              <Route path="/companies/new" element={<CompanyForm />} />
+              <Route path="/companies/:id/edit" element={<CompanyForm />} />
+              <Route path="/products" element={<ProductList />} />
+              <Route path="/products/new" element={<ProductForm />} />
+              <Route path="/products/:id/edit" element={<ProductForm />} />
+              <Route path="/customers" element={<CustomerList />} />
+              <Route path="/customers/new" element={<CustomerForm />} />
+              <Route path="/customers/:id/edit" element={<CustomerForm />} />
+              <Route path="/invoices" element={<InvoiceList />} />
+              <Route path="/invoices/new" element={<InvoiceForm />} />
+              <Route path="/invoices/:id" element={<InvoiceDetail />} />
+              <Route path="/vds/certificates" element={<CertificateList />} />
+              <Route path="/vds/certificates/new" element={<CertificateForm />} />
+              <Route path="/vds/deposits" element={<DepositList />} />
+              <Route path="/vds/deposits/new" element={<DepositForm />} />
+              <Route path="/registers/sales" element={<SalesRegister />} />
+              <Route path="/registers/purchase" element={<PurchaseRegister />} />
+              <Route path="/returns" element={<ReturnList />} />
+              <Route path="/returns/:id" element={<ReturnDetail />} />
+              <Route path="/accounts/ar" element={<ArPage />} />
+              <Route path="/accounts/ap" element={<ApPage />} />
+              <Route path="/tds/deductions" element={<DeductionList />} />
+              <Route path="/tds/deductions/new" element={<DeductionForm />} />
+              <Route path="/tds/payments" element={<TdsPaymentList />} />
+              <Route path="/tds/payments/new" element={<TdsPaymentForm />} />
+              <Route path="/audit-logs" element={<AuditLogPage />} />
+              <Route path="/import-export" element={<ImportExportPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

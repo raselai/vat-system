@@ -4,6 +4,8 @@ import dayjs from 'dayjs';
 import { RegisterResult } from '../../types';
 import { getRegister, downloadRegisterPdf } from '../../services/register';
 import { D, Icon, PageHeader, TonalBtn, TableWrap } from '../../styles/design';
+import HelpHint from '../../components/HelpHint';
+import { useLang } from '../../contexts/LanguageContext';
 
 const fmt = (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
@@ -13,6 +15,7 @@ interface RegisterPageProps {
 }
 
 export default function RegisterPage({ type, title }: RegisterPageProps) {
+  const { lang } = useLang();
   const [data, setData]         = useState<RegisterResult | null>(null);
   const [loading, setLoading]   = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -92,6 +95,11 @@ export default function RegisterPage({ type, title }: RegisterPageProps) {
           </div>
         }
       />
+      <HelpHint id={`register-${type}`}>
+        {lang === 'bn'
+          ? 'রেজিস্টার (মূসক ৬.৭) হলো আপনার সব লেনদেনের স্বয়ংক্রিয় মাসিক খতিয়ান। এখানে কিছু লিখতে হয় না — এটি আপনার চালান থেকে নিজেই তৈরি হয় এবং রিটার্নে ব্যবহৃত হয়।'
+          : 'A register (Musak 6.7) is an automatic monthly ledger of your transactions. Nothing to enter here — it builds itself from your invoices and feeds your monthly return.'}
+      </HelpHint>
 
       {/* Summary KPI strip */}
       {summary && (

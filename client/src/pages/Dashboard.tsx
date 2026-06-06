@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useCompany } from '../contexts/CompanyContext';
 import { useAuth } from '../hooks/useAuth';
+import { useLang } from '../contexts/LanguageContext';
+import InfoTip from '../components/InfoTip';
 import api from '../services/api';
 import { getVatSummary } from '../services/reports.service';
 import type { Invoice, VatSummary } from '../types';
@@ -118,6 +120,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 export default function Dashboard() {
   const { activeCompany } = useCompany();
   useAuth();
+  const { t } = useLang();
   const navigate = useNavigate();
   const [stats,   setStats]   = useState<Stats   | null>(null);
   const [vatData, setVatData] = useState<VatSummary | null>(null);
@@ -239,6 +242,7 @@ export default function Dashboard() {
             sub: `${vatData?.salesCount ?? s.salesInvoices.length} sales invoices`,
             icon: 'trending_up',
             featured: false,
+            tip: t('home.collected'),
           },
           {
             label: 'Input Tax Credit',
@@ -246,6 +250,7 @@ export default function Dashboard() {
             sub: `${vatData?.purchaseCount ?? s.purchaseInvoices.length} purchases`,
             icon: 'trending_down',
             featured: false,
+            tip: t('home.paid'),
           },
           {
             label: 'Net VAT Payable',
@@ -253,6 +258,7 @@ export default function Dashboard() {
             sub: 'After input credit & VDS rebates',
             icon: 'account_balance',
             featured: true,
+            tip: '',
           },
           {
             label: 'Total Invoices',
@@ -260,8 +266,9 @@ export default function Dashboard() {
             sub: `${s.draftCount} draft · ${s.approvedCount} posted`,
             icon: 'receipt_long',
             featured: false,
+            tip: '',
           },
-        ] as const).map(({ label, value, sub, icon, featured }) => (
+        ] as const).map(({ label, value, sub, icon, featured, tip }) => (
           <div
             key={label}
             style={{
@@ -286,6 +293,7 @@ export default function Dashboard() {
             {/* Label */}
             <p style={{ fontFamily: D.manrope, fontSize: '.67rem', fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: featured ? 'rgba(255,255,255,.65)' : D.onSurfaceVar, marginBottom: 8 }}>
               {label}
+              {tip && !featured && <InfoTip text={tip} />}
             </p>
 
             {/* Value — display-lg per DESIGN.md "don't be afraid" */}

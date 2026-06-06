@@ -11,6 +11,8 @@ interface AuthContextType {
   register: (fullName: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (patch: Partial<User>) => void;
+  /** Re-fetch the current user + their companies (e.g. after creating a company in the setup wizard). */
+  reloadProfile: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -78,8 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(prev => prev ? { ...prev, ...patch } : prev);
   }, []);
 
+  const reloadProfile = useCallback(async () => {
+    const { data } = await api.get('/auth/me');
+    setUser(data.data.user);
+    setCompanies(data.data.companies);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, companies, isAuthenticated, isLoading, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, companies, isAuthenticated, isLoading, login, register, logout, updateUser, reloadProfile }}>
       {children}
     </AuthContext.Provider>
   );

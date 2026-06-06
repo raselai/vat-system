@@ -5,8 +5,11 @@ import api from '../../services/api';
 import { VdsCertificate } from '../../types';
 import { finalizeCertificate, cancelCertificate } from '../../services/vds';
 import { D, PageHeader, GradBtn, TonalBtn, TableWrap, FilterBar, StatusChip } from '../../styles/design';
+import HelpHint from '../../components/HelpHint';
+import { useLang } from '../../contexts/LanguageContext';
 
 export default function CertificateList() {
+  const { lang } = useLang();
   const [certificates, setCertificates] = useState<VdsCertificate[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
@@ -149,6 +152,11 @@ export default function CertificateList() {
         title="VDS Certificates"
         action={<GradBtn icon="add" onClick={() => navigate('/vds/certificates/new')}>New Certificate</GradBtn>}
       />
+      <HelpHint id="vds">
+        {lang === 'bn'
+          ? 'যখন কোনো বড় ক্রেতা (ব্যাংক, সরকার, এনজিও) আপনার ভ্যাটের একটি অংশ কেটে আপনার হয়ে ট্রেজারিতে জমা দেয়, তখন একটি ভিডিএস সনদ (মূসক ৬.৬) লিপিবদ্ধ করুন। রিটার্নে ক্রেডিট হিসেবে গণ্য করতে সনদটি চূড়ান্ত করুন।'
+          : 'Record a VDS certificate (Musak 6.6) when a big buyer (bank, government, NGO) withholds part of your VAT and deposits it to the treasury for you. Finalize it so it counts as a credit on your return.'}
+      </HelpHint>
       <FilterBar>
         <Select
           placeholder="All Statuses"

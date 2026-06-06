@@ -45,6 +45,19 @@ BACKUP_DIR="./backups"
 
 `VITE_API_URL` in the client is optional — dev uses the Vite proxy (`/api` forwarded to `http://localhost:4000`, path unchanged). Set it only when the client is deployed without the proxy (e.g., production build pointing at the API server directly).
 
+## Deployment
+
+Production runs on a **Hostinger VPS** (Ubuntu 22.04, `bboom.cloud`, server on port 4000). The server process is managed by **PM2** as `vat-server`; nginx fronts it with Let's Encrypt TLS. Deploy after pushing to `main` by running on the VPS:
+
+```bash
+cd /var/www/vat/server && git pull origin main && npm install && npx prisma db push && npm run build && pm2 restart vat-server
+cd /var/www/vat/client && npm install && npm run build   # client is static — nginx serves the build, no restart
+```
+
+**`npx prisma db push` is mandatory and easy to forget.** This project tracks schema changes via `db push`, not committed migration files (only one baseline migration exists), so `prisma migrate deploy` will NOT create tables added after the baseline. Skipping the push leaves prod with missing tables/columns → every call to the affected endpoints returns 502/504 (this caused the 2026-06-06 outage: code shipped `payments`/`tds_*` tables + `companies.tin`, DB was never synced). `db push` is safe for additive changes; if it warns about data loss, stop and investigate.
+
+Health check: `pm2 status` (vat-server should be `online`, restart count `0`, ~90 MB). Logs: `pm2 logs vat-server`. `mysqldump` must be on the VPS `PATH` for the backup module to work. Full runbook (past incidents, nginx config, CPU-limit recovery) lives in `VPSfix.md`.
+
 ## Architecture
 
 Monorepo with two packages — `client/` (React SPA) and `server/` (Express API). No shared code package; the VAT calculation engine is duplicated in both (`server/src/services/vatCalc.service.ts` and `client/src/utils/vatCalc.ts`) and must be kept in sync manually.
@@ -264,3 +277,9 @@ Non-Prisma domain helpers used across services:
 - `isValidBin(bin)` — returns true if exactly 13 numeric digits
 - `getFiscalYear(date)` — returns `"YYYY-YYYY"` string (July-origin fiscal year)
 - `getTaxMonth(date)` — returns `"YYYY-MM"` string
+
+## Reference Docs
+
+- `DESIGN.md` — source of truth for the Sovereign Ledger design system (no-border rule, surface hierarchy, typography). Consult before adding visual patterns
+- `GUIDE.md` — plain-English end-user guide to Bangladesh VAT and every app feature. Useful for understanding domain intent behind a screen
+- `VPSfix.md` — production deployment runbook and incident log (Hostinger VPS, PM2, nginx)

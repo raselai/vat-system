@@ -5,8 +5,11 @@ import dayjs from 'dayjs';
 import { VatReturn, VatReturnStatus } from '../../types';
 import { listReturns, generateReturn, downloadReturnPdf } from '../../services/return';
 import { D, PageHeader, GradBtn, TonalBtn, TableWrap, FilterBar, StatusChip } from '../../styles/design';
+import HelpHint from '../../components/HelpHint';
+import { useLang } from '../../contexts/LanguageContext';
 
 export default function ReturnList() {
+  const { lang } = useLang();
   const [returns, setReturns] = useState<VatReturn[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -109,6 +112,11 @@ export default function ReturnList() {
         eyebrow="মূসক-৯.১ / Musak 9.1"
         title="Monthly Returns"
       />
+      <HelpHint id="returns">
+        {lang === 'bn'
+          ? 'প্রতি মাসে এটি আপনার ভ্যাট রিটার্ন (মূসক ৯.১) প্রস্তুত করে। "রিটার্ন তৈরি করুন"-এ ক্লিক করুন, যোগফল পর্যালোচনা করুন, তারপর ১৫ তারিখের মধ্যে vat.gov.bd-তে দাখিল করুন।'
+          : 'Each month this prepares your VAT return (Musak 9.1). Click "Generate Return", review the totals, then file it on vat.gov.bd by the 15th.'}
+      </HelpHint>
       <FilterBar>
         <Select
           placeholder="Fiscal Year"
