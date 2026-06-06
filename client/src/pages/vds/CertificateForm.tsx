@@ -84,7 +84,7 @@ export default function CertificateForm() {
           <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 16 }}>
             Certificate Details
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 16, flexWrap: 'wrap' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: 16 }}>
             <div>
               <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 6 }}>Role</p>
               <Select
@@ -129,7 +129,7 @@ export default function CertificateForm() {
           <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 16 }}>
             Counterparty Information
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 12 }}>
             <div>
               <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 6 }}>Name</p>
               <Input value={counterpartyName} onChange={e => setCounterpartyName(e.target.value)} placeholder="Counterparty legal name" />
@@ -152,7 +152,7 @@ export default function CertificateForm() {
         </SLCard>
 
         {/* Deduction details + summary */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 16 }}>
           <SLCard style={{ padding: '1.5rem' }}>
             <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 16 }}>
               Deduction Details
