@@ -91,7 +91,7 @@ export default function ProductList() {
       title: '',
       key: 'actions',
       render: (_: unknown, record: Product) => (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <TonalBtn icon="edit" size="sm" onClick={() => navigate(`/products/${record.id}/edit`)}>Edit</TonalBtn>
           <Popconfirm title="Deactivate this product?" onConfirm={() => handleDelete(record.id)}>
             <TonalBtn icon="delete" size="sm" danger>Deactivate</TonalBtn>
@@ -109,7 +109,7 @@ export default function ProductList() {
         action={<GradBtn icon="add" onClick={() => navigate('/products/new')}>Add Product</GradBtn>}
       />
       <TableWrap>
-        <Table columns={columns} dataSource={products} rowKey="id" loading={loading} scroll={{ x: 800 }} />
+        <Table columns={columns} dataSource={products} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
       </TableWrap>
     </div>
   );

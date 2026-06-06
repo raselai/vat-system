@@ -50,7 +50,7 @@ export default function ProductForm() {
           onFinish={onFinish}
           initialValues={{ type: 'product', vatRate: 15, sdRate: 0, specificDutyAmount: 0, truncatedBasePct: 100, unit: 'pcs', unitPrice: 0 }}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr]" style={{ gap: 16 }}>
             <Form.Item name="name" label="Product / Service Name" rules={[{ required: true, min: 2 }]}>
               <Input placeholder="Full product name" />
             </Form.Item>
@@ -63,7 +63,7 @@ export default function ProductForm() {
             <Input placeholder="বাংলা নাম (optional)" />
           </Form.Item>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
             <Form.Item name="productCode" label="Product Code">
               <Input placeholder="e.g. PRD-001" />
             </Form.Item>
@@ -80,7 +80,7 @@ export default function ProductForm() {
             <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 12 }}>
               VAT Parameters
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+            <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: 16 }}>
               <Form.Item name="vatRate" label="VAT Rate (%)" rules={[{ required: true }]}>
                 <InputNumber min={0} max={100} style={{ width: '100%' }} />
               </Form.Item>
@@ -96,7 +96,7 @@ export default function ProductForm() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
             <Form.Item name="unit" label="Unit of Measure">
               <Input placeholder="pcs, kg, ltr..." />
             </Form.Item>
