@@ -45,17 +45,20 @@ export default function CustomerList() {
       title: 'BIN / NID',
       dataIndex: 'binNid',
       key: 'binNid',
+      className: 'hidden md:table-cell',
       render: (v: string) => <span style={{ fontFamily: 'monospace', fontSize: 13, color: D.onSurfaceVar }}>{v || '—'}</span>,
     },
     {
       title: 'Phone',
       dataIndex: 'phone',
       key: 'phone',
+      className: 'hidden sm:table-cell',
       render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v || '—'}</span>,
     },
     {
       title: 'VDS Entity',
       key: 'isVdsEntity',
+      className: 'hidden lg:table-cell',
       render: (_: unknown, record: Customer) =>
         record.isVdsEntity
           ? <StatusChip status={record.vdsEntityType || 'yes'} label={record.vdsEntityType || 'VDS'} />

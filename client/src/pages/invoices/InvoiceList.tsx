@@ -62,6 +62,7 @@ export default function InvoiceList() {
       title: 'Date',
       dataIndex: 'challanDate',
       key: 'challanDate',
+      className: 'hidden sm:table-cell',
       render: (d: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{new Date(d).toLocaleDateString('en-GB')}</span>,
     },
     {
@@ -75,6 +76,7 @@ export default function InvoiceList() {
       title: 'Grand Total',
       dataIndex: 'grandTotal',
       key: 'grandTotal',
+      className: 'hidden md:table-cell',
       render: (v: number) => (
         <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.onSurface }}>
           ৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -85,6 +87,7 @@ export default function InvoiceList() {
       title: 'VAT',
       dataIndex: 'vatTotal',
       key: 'vatTotal',
+      className: 'hidden lg:table-cell',
       render: (v: number) => (
         <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>
           ৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}

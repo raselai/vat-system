@@ -46,12 +46,14 @@ export default function ArPage() {
       title: 'Total Invoiced',
       key: 'totalInvoiced',
       align: 'right' as const,
+      className: 'hidden md:table-cell',
       render: (_: unknown, r: AgingEntry) => <span style={{ fontFamily: D.manrope }}>{fmt(r.totalInvoiced)}</span>,
     },
     {
       title: 'Paid',
       key: 'totalPaid',
       align: 'right' as const,
+      className: 'hidden md:table-cell',
       render: (_: unknown, r: AgingEntry) => <span style={{ fontFamily: D.manrope, color: D.tertiary }}>{fmt(r.totalPaid)}</span>,
     },
     {
@@ -68,24 +70,28 @@ export default function ArPage() {
       title: '0–30 days',
       key: 'current',
       align: 'right' as const,
+      className: 'hidden lg:table-cell',
       render: (_: unknown, r: AgingEntry) => <span style={{ fontFamily: D.manrope, fontSize: 12, color: D.onSurfaceVar }}>{fmt(r.current)}</span>,
     },
     {
       title: '31–60 days',
       key: 'days31_60',
       align: 'right' as const,
+      className: 'hidden lg:table-cell',
       render: (_: unknown, r: AgingEntry) => <span style={{ fontFamily: D.manrope, fontSize: 12, color: r.days31_60 > 0 ? D.amber : D.onSurfaceVar }}>{fmt(r.days31_60)}</span>,
     },
     {
       title: '61–90 days',
       key: 'days61_90',
       align: 'right' as const,
+      className: 'hidden lg:table-cell',
       render: (_: unknown, r: AgingEntry) => <span style={{ fontFamily: D.manrope, fontSize: 12, color: r.days61_90 > 0 ? D.amber : D.onSurfaceVar }}>{fmt(r.days61_90)}</span>,
     },
     {
       title: '90+ days',
       key: 'over90',
       align: 'right' as const,
+      className: 'hidden sm:table-cell',
       render: (_: unknown, r: AgingEntry) => <span style={{ fontFamily: D.manrope, fontSize: 12, color: r.over90 > 0 ? D.red : D.onSurfaceVar }}>{fmt(r.over90)}</span>,
     },
   ];

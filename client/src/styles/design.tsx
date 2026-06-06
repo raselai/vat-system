@@ -168,7 +168,7 @@ export function SLCard({ children, style, padding = 24 }: SLCardProps) {
 interface TableWrapProps { children: ReactNode; style?: CSSProperties; }
 export function TableWrap({ children, style }: TableWrapProps) {
   return (
-    <div style={{ background: D.surfaceBright, borderRadius: 16, boxShadow: D.ambient, overflow: 'hidden', ...style }}>
+    <div style={{ background: D.surfaceBright, borderRadius: 16, boxShadow: D.ambient, overflowX: 'auto', overflowY: 'hidden', ...style }}>
       {children}
     </div>
   );

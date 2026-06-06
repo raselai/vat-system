@@ -76,6 +76,7 @@ export default function DeductionList() {
     {
       title: 'Date',
       key: 'date',
+      className: 'hidden sm:table-cell',
       render: (_: unknown, r: TdsDeduction) => new Date(r.deductionDate).toLocaleDateString('en-GB'),
     },
     {
@@ -92,12 +93,14 @@ export default function DeductionList() {
       title: 'Gross Amount',
       key: 'grossAmount',
       align: 'right' as const,
+      className: 'hidden md:table-cell',
       render: (_: unknown, r: TdsDeduction) => <span style={{ fontFamily: D.manrope }}>{fmt(r.grossAmount)}</span>,
     },
     {
       title: 'TDS Rate',
       key: 'tdsRate',
       align: 'right' as const,
+      className: 'hidden lg:table-cell',
       render: (_: unknown, r: TdsDeduction) => <span style={{ fontFamily: D.manrope }}>{r.tdsRate}%</span>,
     },
     {
@@ -108,7 +111,7 @@ export default function DeductionList() {
         <span style={{ fontFamily: D.manrope, fontWeight: 700, color: D.primary }}>{fmt(r.tdsAmount)}</span>
       ),
     },
-    { title: 'Month', key: 'taxMonth', dataIndex: 'taxMonth' },
+    { title: 'Month', key: 'taxMonth', dataIndex: 'taxMonth', className: 'hidden sm:table-cell' },
     {
       title: 'Status',
       key: 'status',

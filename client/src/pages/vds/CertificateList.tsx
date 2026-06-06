@@ -86,6 +86,7 @@ export default function CertificateList() {
       title: 'Date',
       dataIndex: 'certificateDate',
       key: 'certificateDate',
+      className: 'hidden sm:table-cell',
       render: (d: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{new Date(d).toLocaleDateString('en-GB')}</span>,
     },
     {
@@ -98,12 +99,14 @@ export default function CertificateList() {
       title: 'BIN',
       dataIndex: 'counterpartyBin',
       key: 'counterpartyBin',
+      className: 'hidden md:table-cell',
       render: (v: string) => <span style={{ fontFamily: 'monospace', fontSize: 12, color: D.onSurfaceVar }}>{v}</span>,
     },
     {
       title: 'VAT Amount',
       dataIndex: 'vatAmount',
       key: 'vatAmount',
+      className: 'hidden lg:table-cell',
       render: (v: number) => <span style={{ color: D.onSurfaceVar }}>৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>,
     },
     {
@@ -116,6 +119,7 @@ export default function CertificateList() {
       title: 'Tax Month',
       dataIndex: 'taxMonth',
       key: 'taxMonth',
+      className: 'hidden sm:table-cell',
       render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v}</span>,
     },
     {

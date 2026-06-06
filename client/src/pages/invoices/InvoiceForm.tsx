@@ -186,6 +186,7 @@ export default function InvoiceForm() {
     },
     {
       title: 'Taxable', key: 'taxableValue', width: 100, align: 'right' as const,
+      className: 'hidden md:table-cell',
       render: (_: unknown, r: FormItem) => (
         <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface, fontSize: 13 }}>
           {fmt(r.taxableValue)}
@@ -194,6 +195,7 @@ export default function InvoiceForm() {
     },
     {
       title: 'SD', key: 'sdAmount', width: 80, align: 'right' as const,
+      className: 'hidden lg:table-cell',
       render: (_: unknown, r: FormItem) => (
         <span style={{ fontFamily: D.manrope, color: D.onSurfaceVar, fontSize: 13 }}>
           {fmt(r.sdAmount)}
@@ -248,7 +250,7 @@ export default function InvoiceForm() {
           <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 16 }}>
             Invoice Details
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr auto', gap: 16, alignItems: 'end' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" style={{ gap: 16, alignItems: 'end' }}>
             <div>
               <p style={labelStyle}>Invoice Type</p>
               <Select
@@ -349,7 +351,7 @@ export default function InvoiceForm() {
         </SLCard>
 
         {/* Summary + actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px]" style={{ gap: 16 }}>
 
           {/* Actions card */}
           <SLCard style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>

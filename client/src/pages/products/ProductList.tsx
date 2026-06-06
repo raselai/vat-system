@@ -58,6 +58,7 @@ export default function ProductList() {
       title: 'HS Code',
       dataIndex: 'hsCode',
       key: 'hsCode',
+      className: 'hidden md:table-cell',
       render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v || '—'}</span>,
     },
     {
@@ -72,12 +73,14 @@ export default function ProductList() {
       title: 'SD %',
       dataIndex: 'sdRate',
       key: 'sdRate',
+      className: 'hidden sm:table-cell',
       render: (v: number) => <span style={{ color: D.onSurfaceVar }}>{v > 0 ? `${v}%` : '—'}</span>,
     },
     {
       title: 'Unit Price',
       dataIndex: 'unitPrice',
       key: 'unitPrice',
+      className: 'hidden sm:table-cell',
       render: (v: number) => (
         <span style={{ fontFamily: D.manrope, fontWeight: 600, color: D.onSurface }}>
           ৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}

@@ -64,18 +64,21 @@ export default function ReturnList() {
       title: 'Fiscal Year',
       dataIndex: 'fiscalYear',
       key: 'fiscalYear',
+      className: 'hidden sm:table-cell',
       render: (v: string) => <span style={{ color: D.onSurfaceVar, fontSize: 13 }}>{v}</span>,
     },
     {
       title: 'Output VAT',
       dataIndex: 'outputVat',
       key: 'outputVat',
+      className: 'hidden md:table-cell',
       render: (v: number) => <span style={{ color: D.onSurfaceVar }}>৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>,
     },
     {
       title: 'Input VAT',
       dataIndex: 'inputVat',
       key: 'inputVat',
+      className: 'hidden lg:table-cell',
       render: (v: number) => <span style={{ color: D.onSurfaceVar }}>৳ {Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>,
     },
     {
