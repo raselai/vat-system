@@ -103,20 +103,24 @@ Monorepo with two packages — `client/` (React SPA) and `server/` (Express API)
   - `GradBtn` / `TonalBtn` / `BackBtn` — primary gradient CTA, secondary tonal, back nav
   - `SLCard` / `TableWrap` — white ambient-shadow card and table container
   - `FilterBar` / `CardSection` / `SLDivider` / `FormActions` — layout helpers
-  - `StatusChip` — pill badge for entity statuses (uses `STATUS_PALETTE` keyed by status string)
+  - `StatusChip` — pill badge for entity statuses (uses `STATUS_PALETTE` keyed by status string). Keys: `draft`, `approved`, `locked`, `cancelled`, `finalized`, `reviewed`, `submitted`, `pending`, `deposited`, `verified`, `product`, `service`, `deductor`, `deductee`, `sales`, `purchase`, `active`, `inactive`, `invoice`, `payment`, `yes`, `no`, HTTP methods. Unknown keys render as neutral chip.
   - `SummaryRow` / `MoneyDisplay` — key-value row and large monetary figure display
 - **Design reference**: `DESIGN.md` in repo root is the source of truth for design decisions (no-border rule, surface hierarchy, glassmorphism, typography). Consult it before adding new visual patterns
 
-### AR/AP Module (`/api/v1/accounts`)
+### AR/AP + Ledger Module (`/api/v1/accounts`)
 
-Tracks payments against invoices and exposes aging summaries. No separate data entry table beyond the `payments` table.
+Tracks payments against invoices, exposes aging summaries, and provides money-account ledgers.
 
-- **Payment recording**: `POST /accounts/payments` — validates `amount ≤ outstanding balance` (invoice `netReceivable − SUM(existing payments)`). Hard delete only (`DELETE /accounts/payments/:id`).
+- **Payment recording**: `POST /accounts/payments` — validates `amount ≤ outstanding balance` (invoice `netReceivable − SUM(existing payments)`). Optional `paymentAccountId` links payment to a money account; server validates account exists + active + same company. Hard delete only (`DELETE /accounts/payments/:id`).
 - **AR aging** (`GET /accounts/ar`): groups sales invoices by `customerId`, buckets outstanding balance into 0-30 / 31-60 / 61-90 / 90+ days past `challanDate`
 - **AP aging** (`GET /accounts/ap`): same but for purchase invoices (supplier payables)
-- **RBAC**: GET endpoints (ar, ap, payments list) — any role. POST/DELETE payments — `requireRole('admin')` + `auditLog`
-- **Client pages**: `client/src/pages/accounts/ArPage.tsx`, `ApPage.tsx`. Payment entry via `PaymentForm.tsx` modal rendered inside `InvoiceDetail.tsx` — not a standalone route
-- **Outstanding balance** shown live in `InvoiceDetail` payments section: recalculates after each payment create/delete
+- **Payment accounts** (`payment_accounts` table): named money accounts per company (cash / bank / mobile_banking), with `openingBalance`. CRUD at `GET|POST /accounts/payment-accounts` and `GET|PUT|DELETE /accounts/payment-accounts/:id`. Soft delete (`isActive=false`). Admin-only mutations.
+- **Cash/Bank Book** (`GET /accounts/cashbook?accountId=&from=&to=`): chronological payments for one account (pass `accountId=unassigned` for payments with no linked account). Returns `broughtForward` (openingBalance + pre-range net), per-entry `moneyIn`/`moneyOut`, and running `balance`. Sales-invoice payments = in; purchase-invoice payments = out.
+- **Party Ledger** (`GET /accounts/party-ledger?customerId=&from=&to=`): per-customer/supplier statement. Sales invoices → debit, purchase invoices → credit; payments go the opposite way. Running balance positive = they owe us. Uses `netReceivable` and `status: { not: 'cancelled' }` — same filters as AR/AP so the closing balance reconciles.
+- **RBAC**: all GETs — any role. POST/DELETE payments + all payment-account mutations — `requireRole('admin')` + `auditLog`
+- **Server files**: `services/payment.service.ts`, `services/paymentAccount.service.ts`, `services/ledger.service.ts`, `controllers/payment.controller.ts`, `controllers/paymentAccount.controller.ts`, `controllers/ledger.controller.ts`, `routes/accounts.routes.ts`
+- **Client pages**: `ArPage.tsx`, `ApPage.tsx`, `PaymentAccountList.tsx`, `PaymentAccountForm.tsx`, `CashBookPage.tsx`, `PartyLedgerPage.tsx` — all in `client/src/pages/accounts/`. Payment entry via `PaymentForm.tsx` modal inside `InvoiceDetail.tsx` — modal now also loads active accounts and auto-fills `paymentMethod` from the chosen account's type.
+- **Outstanding balance** shown live in `InvoiceDetail`; InvoiceDetail payments list now displays account name when set.
 
 ### TDS Module (`/api/v1/tds`)
 
@@ -246,7 +250,14 @@ Reports:
 
 AR/AP flow:
   Sales invoice created → InvoiceDetail → Record Payment (amount ≤ outstanding)
+  → Optional: link payment to a PaymentAccount (auto-fills paymentMethod)
   → Outstanding balance recalculates → ArPage shows updated aging bucket
+
+Payment Accounts / Ledger flow:
+  Admin creates PaymentAccount (cash/bank/mobile_banking with openingBalance)
+  → Payments recorded against invoices can reference an account
+  → GET /accounts/cashbook?accountId=X — per-account money in/out with running balance
+  → GET /accounts/party-ledger?customerId=X — invoice+payment statement, closing = AR−AP for that party
 
 TDS flow:
   New TDS Deduction (draft) → Finalize
