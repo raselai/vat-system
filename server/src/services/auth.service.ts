@@ -17,8 +17,9 @@ export async function register(input: RegisterInput) {
       fullName: input.fullName,
       email: input.email,
       passwordHash,
+      userType: input.userType ?? 'company',
     },
-    select: { id: true, fullName: true, email: true, status: true, createdAt: true },
+    select: { id: true, fullName: true, email: true, status: true, userType: true, createdAt: true },
   });
 
   const payload: TokenPayload = { userId: user.id.toString(), email: user.email };
@@ -76,6 +77,7 @@ export async function login(input: LoginInput) {
       fullName: user.fullName,
       email: user.email,
       status: user.status,
+      userType: user.userType,
     },
     companies: userCompanies.map((uc: any) => ({
       id: uc.company.id.toString(),

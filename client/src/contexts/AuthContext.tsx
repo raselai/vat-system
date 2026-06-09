@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import api from '../services/api';
-import { User, CompanyAccess, LoginResponse, RegisterResponse } from '../types';
+import { User, CompanyAccess, LoginResponse, RegisterResponse, UserType } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -8,7 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (fullName: string, email: string, password: string) => Promise<void>;
+  register: (fullName: string, email: string, password: string, userType?: UserType) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (patch: Partial<User>) => void;
   /** Re-fetch the current user + their companies (e.g. after creating a company in the setup wizard). */
@@ -55,8 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const register = useCallback(async (fullName: string, email: string, password: string) => {
-    const { data } = await api.post<{ success: boolean; data: RegisterResponse }>('/auth/register', { fullName, email, password });
+  const register = useCallback(async (fullName: string, email: string, password: string, userType: UserType = 'company') => {
+    const { data } = await api.post<{ success: boolean; data: RegisterResponse }>('/auth/register', { fullName, email, password, userType });
     const { user, accessToken, refreshToken } = data.data;
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);

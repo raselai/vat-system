@@ -4,11 +4,14 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+export type UserType = 'company' | 'income_tax';
+
 export interface User {
   id: string;
   fullName: string;
   email: string;
   status: 'active' | 'inactive';
+  userType?: UserType;
 }
 
 export interface CompanyAccess {

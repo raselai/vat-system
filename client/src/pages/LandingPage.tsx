@@ -589,7 +589,7 @@ export default function LandingPage() {
           </Link>
           <div className="nav-ctas">
             <Link to="/login"    className="btn btn-ghost">Sign In</Link>
-            <Link to="/register" className="btn btn-solid">Get Started</Link>
+            <Link to="/get-started" className="btn btn-solid">Get Started</Link>
           </div>
         </div>
       </header>
@@ -611,7 +611,7 @@ export default function LandingPage() {
               secure, web-based platform — built for Bangladesh.
             </p>
             <div className="hero-ctas a4">
-              <Link to="/register" className="btn btn-lg">
+              <Link to="/get-started" className="btn btn-lg">
                 <Icon name="rocket_launch" size="1rem" />
                 Get Started Free
               </Link>
@@ -781,7 +781,7 @@ export default function LandingPage() {
             Join businesses across Bangladesh using Sovereign Ledger
             to stay compliant, accurate, and audit-ready every month.
           </p>
-          <Link to="/register" className="btn-cta r d2">
+          <Link to="/get-started" className="btn-cta r d2">
             <Icon name="rocket_launch" size="1.1rem" />
             Create Free Account
           </Link>

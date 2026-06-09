@@ -71,6 +71,24 @@ const navGroups: NavGroup[] = [
   },
 ];
 
+// Minimal nav for income-tax-only users (userType 'income_tax', no company).
+const incomeTaxNavGroups: NavGroup[] = [
+  {
+    header: 'nav.group.incomeTax',
+    items: [
+      { key: '/income-tax-home', icon: 'home', label: 'nav.itHome' },
+      { key: '/income-tax', icon: 'account_balance_wallet', label: 'nav.itCalculator', jargon: 'Income Tax · Individual' },
+    ],
+  },
+  {
+    header: 'nav.group.setup',
+    items: [
+      { key: '/welcome', icon: 'add_business', label: 'nav.addCompany' },
+      { key: '/settings', icon: 'settings', label: 'nav.settings' },
+    ],
+  },
+];
+
 function MaterialIcon({ name, filled, className }: { name: string; filled?: boolean; className?: string }) {
   return (
     <span
@@ -88,9 +106,14 @@ export default function AppLayout() {
   const [helpOpen, setHelpOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, companies, logout } = useAuth();
   const { activeCompany } = useCompany();
   const { t, lang, setLang } = useLang();
+
+  // Income-tax-only mode: a personal income-tax user who hasn't added a company.
+  // Drives which nav, header chip, and bottom CTA are shown.
+  const incomeTaxMode = user?.userType === 'income_tax' && companies.length === 0;
+  const groups = incomeTaxMode ? incomeTaxNavGroups : navGroups;
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -167,7 +190,7 @@ export default function AppLayout() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 overflow-y-auto no-scrollbar">
-        {navGroups.map((group) => (
+        {groups.map((group) => (
           <div key={group.header} className="mb-3">
             {showText(isMobile) && (
               <p
@@ -220,12 +243,12 @@ export default function AppLayout() {
         style={{ borderTop: '1px solid rgba(196,198,207,0.18)' }}
       >
         <button
-          onClick={() => { handleNav('/invoices/new'); }}
+          onClick={() => { handleNav(incomeTaxMode ? '/income-tax' : '/invoices/new'); }}
           className="w-full text-white py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity text-sm"
           style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 700, background: 'linear-gradient(135deg, #001d52, #00307e)' }}
         >
-          <MaterialIcon name="add" className="text-sm" />
-          {showText(isMobile) && t('nav.newInvoice')}
+          <MaterialIcon name={incomeTaxMode ? 'calculate' : 'add'} className="text-sm" />
+          {showText(isMobile) && t(incomeTaxMode ? 'nav.calculateTax' : 'nav.newInvoice')}
         </button>
 
         {showText(isMobile) && (
@@ -343,10 +366,10 @@ export default function AppLayout() {
               <div className="flex items-center gap-2.5 cursor-pointer">
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-bold text-on-surface leading-none truncate max-w-[160px]">
-                    {activeCompany?.name || 'No Company'}
+                    {incomeTaxMode ? (user?.fullName || 'Income Tax') : (activeCompany?.name || 'No Company')}
                   </p>
                   <p className="text-[10px] text-slate-500 uppercase tracking-tight">
-                    {activeCompany ? `BIN: ${activeCompany.bin}` : 'Select company'}
+                    {incomeTaxMode ? t('ithome.eyebrow') : activeCompany ? `BIN: ${activeCompany.bin}` : 'Select company'}
                   </p>
                 </div>
                 <div className="w-9 h-9 rounded-xl bg-primary-container flex items-center justify-center text-on-primary-container flex-shrink-0">

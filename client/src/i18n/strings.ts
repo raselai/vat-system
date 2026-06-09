@@ -117,6 +117,41 @@ const en = {
   'wizard.done.body': 'Your business is ready. From the Home screen you can record your first sale whenever you like.',
   'wizard.done.cta': 'Go to Home',
 
+  // ── Get Started chooser ──
+  'getStarted.eyebrow': 'Get Started',
+  'getStarted.title': 'How will you use this app?',
+  'getStarted.sub': 'Choose what fits you now — you can add the other later.',
+  'getStarted.company.title': 'I run a Company',
+  'getStarted.company.desc': 'Issue invoices (challans), handle VDS, and file monthly VAT returns.',
+  'getStarted.company.tag': 'VAT · Mushak',
+  'getStarted.incomeTax.title': "I'm an Income Tax payer",
+  'getStarted.incomeTax.desc': 'Work out your yearly personal income tax and keep a record of each year.',
+  'getStarted.incomeTax.tag': 'Personal Income Tax',
+  'getStarted.haveAccount': 'Already have an account?',
+  'getStarted.signIn': 'Sign In',
+
+  // ── Income Tax Home ──
+  'ithome.eyebrow': 'Income Tax',
+  'ithome.greeting': 'Your income tax, made simple',
+  'ithome.sub': 'Calculate what you owe for the year and keep each year on record.',
+  'ithome.calculate': 'Calculate my tax',
+  'ithome.calculateSub': 'Work out tax for an assessment year',
+  'ithome.saved': 'Your saved calculations',
+  'ithome.empty': 'No calculations yet — start with "Calculate my tax".',
+  'ithome.netPayable': 'Net payable',
+  'ithome.refundable': 'Refundable',
+  'ithome.deadlineLabel': 'Return deadline',
+  'ithome.taxDay': 'Tax Day · 30 Nov',
+  'ithome.addCompany': 'I also run a company',
+  'ithome.addCompanySub': 'Add a company to unlock VAT features',
+
+  // ── Nav: Income-tax mode ──
+  'nav.group.incomeTax': 'Income Tax',
+  'nav.itHome': 'Home',
+  'nav.itCalculator': 'Tax Calculator',
+  'nav.addCompany': 'Add a Company',
+  'nav.calculateTax': 'Calculate Tax',
+
   // ── Common ──
   'common.bin': 'BIN (VAT registration number)',
   'common.required': 'This field is required',
@@ -225,6 +260,41 @@ const bn: Record<StringKey, string> = {
 
   'common.bin': 'বিআইএন (ভ্যাট নিবন্ধন নম্বর)',
   'common.required': 'এই ঘরটি পূরণ করা আবশ্যক',
+
+  // ── Get Started chooser ──
+  'getStarted.eyebrow': 'শুরু করুন',
+  'getStarted.title': 'আপনি কীভাবে অ্যাপটি ব্যবহার করবেন?',
+  'getStarted.sub': 'এখন আপনার জন্য যেটি উপযুক্ত বেছে নিন — পরে অন্যটি যোগ করতে পারবেন।',
+  'getStarted.company.title': 'আমার একটি প্রতিষ্ঠান আছে',
+  'getStarted.company.desc': 'চালান তৈরি, ভিডিএস এবং মাসিক ভ্যাট রিটার্ন দাখিল করুন।',
+  'getStarted.company.tag': 'ভ্যাট · মুসক',
+  'getStarted.incomeTax.title': 'আমি একজন আয়কর দাতা',
+  'getStarted.incomeTax.desc': 'আপনার বার্ষিক ব্যক্তিগত আয়কর হিসাব করুন এবং প্রতি বছরের রেকর্ড রাখুন।',
+  'getStarted.incomeTax.tag': 'ব্যক্তিগত আয়কর',
+  'getStarted.haveAccount': 'ইতিমধ্যে একটি অ্যাকাউন্ট আছে?',
+  'getStarted.signIn': 'সাইন ইন',
+
+  // ── Income Tax Home ──
+  'ithome.eyebrow': 'আয়কর',
+  'ithome.greeting': 'আপনার আয়কর, সহজভাবে',
+  'ithome.sub': 'বছরের জন্য কত দিতে হবে হিসাব করুন এবং প্রতি বছরের রেকর্ড রাখুন।',
+  'ithome.calculate': 'আমার কর হিসাব করুন',
+  'ithome.calculateSub': 'একটি কর বছরের জন্য হিসাব করুন',
+  'ithome.saved': 'আপনার সংরক্ষিত হিসাবসমূহ',
+  'ithome.empty': 'এখনও কোনো হিসাব নেই — "আমার কর হিসাব করুন" দিয়ে শুরু করুন।',
+  'ithome.netPayable': 'প্রদেয় কর',
+  'ithome.refundable': 'ফেরতযোগ্য',
+  'ithome.deadlineLabel': 'রিটার্নের সময়সীমা',
+  'ithome.taxDay': 'কর দিবস · ৩০ নভেম্বর',
+  'ithome.addCompany': 'আমার একটি প্রতিষ্ঠানও আছে',
+  'ithome.addCompanySub': 'ভ্যাট ফিচার চালু করতে প্রতিষ্ঠান যোগ করুন',
+
+  // ── Nav: Income-tax mode ──
+  'nav.group.incomeTax': 'আয়কর',
+  'nav.itHome': 'হোম',
+  'nav.itCalculator': 'কর ক্যালকুলেটর',
+  'nav.addCompany': 'প্রতিষ্ঠান যোগ করুন',
+  'nav.calculateTax': 'কর হিসাব',
 };
 
 export const strings: Record<Lang, Record<StringKey, string>> = { en, bn };

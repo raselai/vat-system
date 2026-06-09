@@ -184,6 +184,11 @@ export default function IncomeTaxCalculator() {
                 formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                 parser={v => Number((v || '').replace(/,/g, ''))}
                 onChange={v => setAdvanceTaxPaid(Number(v) || 0)} />
+              <span style={hintStyle}>
+                {lang === 'bn'
+                  ? 'ইতিমধ্যে আপনার কাছ থেকে কর্তিত মোট কর — সনদ থেকে যোগ করুন: বেতনের কর সনদ, ব্যাংক/এফডিআর সুদের সনদ, সঞ্চয়পত্রের কর, গাড়ির (বিআরটিএ) অগ্রিম কর রসিদ, বাড়ি ভাড়া/ফি-এর উৎসে কর্তিত কর সনদ। অনুমান নয় — সনদ অনুযায়ী দিন।'
+                  : 'The tax already collected from you during the year — add up your certificates: salary tax certificate, bank/FDR interest certificate, savings-certificate (Sanchayapatra) TDS, car (BRTA) advance-tax receipt, and any rent/fee TDS certificates. Use the certificates, don’t estimate.'}
+              </span>
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Switch checked={subjectToMin} onChange={setSubjectToMin} size="small" />
@@ -238,4 +243,9 @@ export default function IncomeTaxCalculator() {
 const lblStyle: CSSProperties = {
   display: 'block', fontFamily: D.manrope, fontSize: 12, fontWeight: 600,
   color: D.onSurfaceVar, marginBottom: 5,
+};
+
+const hintStyle: CSSProperties = {
+  display: 'block', fontFamily: D.inter, fontSize: 11.5, lineHeight: 1.45,
+  color: D.onSurfaceVar, marginTop: 6, opacity: 0.85,
 };

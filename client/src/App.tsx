@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import GetStarted from './pages/GetStarted';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
@@ -39,6 +40,7 @@ import DeductionForm from './pages/tds/DeductionForm';
 import TdsPaymentList from './pages/tds/TdsPaymentList';
 import TdsPaymentForm from './pages/tds/TdsPaymentForm';
 import IncomeTaxCalculator from './pages/incomeTax/IncomeTaxCalculator';
+import IncomeTaxHome from './pages/incomeTax/IncomeTaxHome';
 
 // Authenticated shell: requires login + company context for all nested routes.
 function AuthedShell() {
@@ -51,14 +53,32 @@ function AuthedShell() {
   );
 }
 
-// First-run gate: a brand-new user with no company is sent to the setup wizard.
-// Otherwise renders the full app chrome (AppLayout provides the <Outlet/>).
+// An income-tax-only user is one who chose "Income Tax payer" at signup and has
+// not added a company. They skip company setup entirely and live in income-tax mode.
+function useIncomeTaxMode() {
+  const { user, companies } = useAuth();
+  return user?.userType === 'income_tax' && companies.length === 0;
+}
+
+// First-run gate: a brand-new COMPANY user with no company is sent to the setup
+// wizard. Income-tax-only users bypass it and render the app chrome directly.
 function FirstRunGate() {
   const { companies } = useAuth();
-  if (companies.length === 0 && !isWelcomeComplete()) {
+  const incomeTaxMode = useIncomeTaxMode();
+  if (!incomeTaxMode && companies.length === 0 && !isWelcomeComplete()) {
     return <Navigate to="/welcome" replace />;
   }
   return <AppLayout />;
+}
+
+// Guards company-scoped pages: an income-tax-only user (no company → activeCompany
+// is null) is redirected to their home instead of crashing the VAT screens.
+function CompanyOnly() {
+  const incomeTaxMode = useIncomeTaxMode();
+  if (incomeTaxMode) {
+    return <Navigate to="/income-tax-home" replace />;
+  }
+  return <Outlet />;
 }
 
 function App() {
@@ -69,6 +89,7 @@ function App() {
           {/* Public */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/get-started" element={<GetStarted />} />
           <Route path="/register" element={<Register />} />
 
           {/* Authenticated */}
@@ -78,39 +99,45 @@ function App() {
 
             {/* Main app (with sidebar + first-run gate) */}
             <Route element={<FirstRunGate />}>
-              <Route path="/home" element={<Home />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/companies" element={<CompanyList />} />
-              <Route path="/companies/new" element={<CompanyForm />} />
-              <Route path="/companies/:id/edit" element={<CompanyForm />} />
-              <Route path="/products" element={<ProductList />} />
-              <Route path="/products/new" element={<ProductForm />} />
-              <Route path="/products/:id/edit" element={<ProductForm />} />
-              <Route path="/customers" element={<CustomerList />} />
-              <Route path="/customers/new" element={<CustomerForm />} />
-              <Route path="/customers/:id/edit" element={<CustomerForm />} />
-              <Route path="/invoices" element={<InvoiceList />} />
-              <Route path="/invoices/new" element={<InvoiceForm />} />
-              <Route path="/invoices/:id" element={<InvoiceDetail />} />
-              <Route path="/vds/certificates" element={<CertificateList />} />
-              <Route path="/vds/certificates/new" element={<CertificateForm />} />
-              <Route path="/vds/deposits" element={<DepositList />} />
-              <Route path="/vds/deposits/new" element={<DepositForm />} />
-              <Route path="/registers/sales" element={<SalesRegister />} />
-              <Route path="/registers/purchase" element={<PurchaseRegister />} />
-              <Route path="/returns" element={<ReturnList />} />
-              <Route path="/returns/:id" element={<ReturnDetail />} />
-              <Route path="/accounts/ar" element={<ArPage />} />
-              <Route path="/accounts/ap" element={<ApPage />} />
-              <Route path="/tds/deductions" element={<DeductionList />} />
-              <Route path="/tds/deductions/new" element={<DeductionForm />} />
-              <Route path="/tds/payments" element={<TdsPaymentList />} />
-              <Route path="/tds/payments/new" element={<TdsPaymentForm />} />
+              {/* Available in both modes (income-tax pages + personal settings) */}
               <Route path="/income-tax" element={<IncomeTaxCalculator />} />
-              <Route path="/audit-logs" element={<AuditLogPage />} />
-              <Route path="/import-export" element={<ImportExportPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/income-tax-home" element={<IncomeTaxHome />} />
               <Route path="/settings" element={<SettingsPage />} />
+
+              {/* Company-scoped (VAT) — hidden from income-tax-only users */}
+              <Route element={<CompanyOnly />}>
+                <Route path="/home" element={<Home />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/companies" element={<CompanyList />} />
+                <Route path="/companies/new" element={<CompanyForm />} />
+                <Route path="/companies/:id/edit" element={<CompanyForm />} />
+                <Route path="/products" element={<ProductList />} />
+                <Route path="/products/new" element={<ProductForm />} />
+                <Route path="/products/:id/edit" element={<ProductForm />} />
+                <Route path="/customers" element={<CustomerList />} />
+                <Route path="/customers/new" element={<CustomerForm />} />
+                <Route path="/customers/:id/edit" element={<CustomerForm />} />
+                <Route path="/invoices" element={<InvoiceList />} />
+                <Route path="/invoices/new" element={<InvoiceForm />} />
+                <Route path="/invoices/:id" element={<InvoiceDetail />} />
+                <Route path="/vds/certificates" element={<CertificateList />} />
+                <Route path="/vds/certificates/new" element={<CertificateForm />} />
+                <Route path="/vds/deposits" element={<DepositList />} />
+                <Route path="/vds/deposits/new" element={<DepositForm />} />
+                <Route path="/registers/sales" element={<SalesRegister />} />
+                <Route path="/registers/purchase" element={<PurchaseRegister />} />
+                <Route path="/returns" element={<ReturnList />} />
+                <Route path="/returns/:id" element={<ReturnDetail />} />
+                <Route path="/accounts/ar" element={<ArPage />} />
+                <Route path="/accounts/ap" element={<ApPage />} />
+                <Route path="/tds/deductions" element={<DeductionList />} />
+                <Route path="/tds/deductions/new" element={<DeductionForm />} />
+                <Route path="/tds/payments" element={<TdsPaymentList />} />
+                <Route path="/tds/payments/new" element={<TdsPaymentForm />} />
+                <Route path="/audit-logs" element={<AuditLogPage />} />
+                <Route path="/import-export" element={<ImportExportPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+              </Route>
             </Route>
           </Route>
 
