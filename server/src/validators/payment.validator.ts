@@ -5,6 +5,7 @@ export const createPaymentSchema = z.object({
   amount: z.number().positive(),
   paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
   paymentMethod: z.enum(['cash', 'cheque', 'bank_transfer', 'mobile_banking']),
+  paymentAccountId: z.string().optional(),
   reference: z.string().max(100).optional(),
   notes: z.string().optional(),
 });

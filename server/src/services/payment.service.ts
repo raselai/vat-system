@@ -10,6 +10,9 @@ function serializePayment(p: any) {
     invoiceId: p.invoiceId.toString(),
     createdBy: p.createdBy.toString(),
     amount: Number(p.amount),
+    paymentAccountId: p.paymentAccountId ? p.paymentAccountId.toString() : null,
+    paymentAccountName: p.paymentAccount?.name ?? null,
+    paymentAccount: undefined,
   };
 }
 
@@ -24,6 +27,7 @@ export async function listPayments(
   const [payments, total] = await Promise.all([
     prisma.payment.findMany({
       where,
+      include: { paymentAccount: true },
       orderBy: { paymentDate: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -47,10 +51,20 @@ export async function createPayment(companyId: bigint, userId: bigint, input: Cr
     throw new Error(`Payment amount (${input.amount}) exceeds outstanding balance (${outstanding.toFixed(2)})`);
   }
 
+  let paymentAccountId: bigint | undefined;
+  if (input.paymentAccountId) {
+    const account = await prisma.paymentAccount.findFirst({
+      where: { id: BigInt(input.paymentAccountId), companyId, isActive: true },
+    });
+    if (!account) throw new Error('Payment account not found or inactive');
+    paymentAccountId = account.id;
+  }
+
   const payment = await prisma.payment.create({
     data: {
       companyId,
       invoiceId,
+      paymentAccountId,
       amount: new Decimal(input.amount),
       paymentDate: new Date(input.paymentDate),
       paymentMethod: input.paymentMethod,

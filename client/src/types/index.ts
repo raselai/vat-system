@@ -356,6 +356,8 @@ export interface Payment {
   id: string;
   companyId: string;
   invoiceId: string;
+  paymentAccountId?: string | null;
+  paymentAccountName?: string | null;
   amount: number;
   paymentDate: string;
   paymentMethod: 'cash' | 'cheque' | 'bank_transfer' | 'mobile_banking';
@@ -363,6 +365,82 @@ export interface Payment {
   notes?: string;
   createdBy: string;
   createdAt: string;
+}
+
+export interface PaymentAccount {
+  id: string;
+  companyId: string;
+  name: string;
+  type: 'cash' | 'bank' | 'mobile_banking';
+  accountNumber?: string | null;
+  bankName?: string | null;
+  openingBalance: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CashBookEntry {
+  sl: number;
+  paymentId: string;
+  date: string;
+  invoiceId: string;
+  challanNo: string;
+  partyName: string | null;
+  invoiceType: 'sales' | 'purchase';
+  direction: 'in' | 'out';
+  method: string;
+  reference: string | null;
+  moneyIn: number;
+  moneyOut: number;
+  balance: number;
+}
+
+export interface CashBookResult {
+  account: {
+    id: string;
+    name: string;
+    type: string;
+    accountNumber: string | null;
+    bankName: string | null;
+    openingBalance: number;
+  } | null;
+  broughtForward: number;
+  entries: CashBookEntry[];
+  summary: {
+    totalIn: number;
+    totalOut: number;
+    netChange: number;
+    closingBalance: number;
+  };
+}
+
+export interface PartyLedgerEntry {
+  sl: number;
+  date: string;
+  type: 'invoice' | 'payment';
+  refId: string;
+  challanNo: string;
+  invoiceType: 'sales' | 'purchase';
+  description: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+export interface PartyLedgerResult {
+  customer: {
+    id: string;
+    name: string;
+    binNid: string | null;
+  };
+  broughtForward: number;
+  entries: PartyLedgerEntry[];
+  summary: {
+    totalDebit: number;
+    totalCredit: number;
+    closingBalance: number;
+  };
 }
 
 export interface AgingEntry {

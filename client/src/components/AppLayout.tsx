@@ -39,6 +39,9 @@ const navGroups: NavGroup[] = [
     items: [
       { key: '/accounts/ar', icon: 'payments', label: 'nav.ar', jargon: 'Receivables (AR)' },
       { key: '/accounts/ap', icon: 'money_off', label: 'nav.ap', jargon: 'Payables (AP)' },
+      { key: '/accounts/cashbook', icon: 'menu_book', label: 'nav.cashbook', jargon: 'Cash/Bank Book' },
+      { key: '/accounts/party-ledger', icon: 'contacts', label: 'nav.partyLedger', jargon: 'Party Ledger' },
+      { key: '/accounts/payment-accounts', icon: 'account_balance', label: 'nav.paymentAccounts', jargon: 'Money Accounts' },
     ],
   },
   {

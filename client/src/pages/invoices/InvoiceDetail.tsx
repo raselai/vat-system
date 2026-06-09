@@ -316,6 +316,7 @@ export default function InvoiceDetail() {
                         </p>
                         <p style={{ fontFamily: D.inter, fontSize: 11, color: D.onSurfaceVar, margin: 0 }}>
                           {new Date(p.paymentDate).toLocaleDateString('en-GB')} · {p.paymentMethod.replace('_', ' ')}
+                          {p.paymentAccountName ? ` · ${p.paymentAccountName}` : ''}
                           {p.reference ? ` · ${p.reference}` : ''}
                         </p>
                       </div>

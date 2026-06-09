@@ -35,6 +35,10 @@ import ReportsPage from './pages/reports/ReportsPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import ArPage from './pages/accounts/ArPage';
 import ApPage from './pages/accounts/ApPage';
+import PaymentAccountList from './pages/accounts/PaymentAccountList';
+import PaymentAccountForm from './pages/accounts/PaymentAccountForm';
+import CashBookPage from './pages/accounts/CashBookPage';
+import PartyLedgerPage from './pages/accounts/PartyLedgerPage';
 import DeductionList from './pages/tds/DeductionList';
 import DeductionForm from './pages/tds/DeductionForm';
 import TdsPaymentList from './pages/tds/TdsPaymentList';
@@ -130,6 +134,11 @@ function App() {
                 <Route path="/returns/:id" element={<ReturnDetail />} />
                 <Route path="/accounts/ar" element={<ArPage />} />
                 <Route path="/accounts/ap" element={<ApPage />} />
+                <Route path="/accounts/payment-accounts" element={<PaymentAccountList />} />
+                <Route path="/accounts/payment-accounts/new" element={<PaymentAccountForm />} />
+                <Route path="/accounts/payment-accounts/:id/edit" element={<PaymentAccountForm />} />
+                <Route path="/accounts/cashbook" element={<CashBookPage />} />
+                <Route path="/accounts/party-ledger" element={<PartyLedgerPage />} />
                 <Route path="/tds/deductions" element={<DeductionList />} />
                 <Route path="/tds/deductions/new" element={<DeductionForm />} />
                 <Route path="/tds/payments" element={<TdsPaymentList />} />

@@ -142,7 +142,17 @@ Personal **individual income-tax calculator** — saves one computation per user
 - **Persistence** (`income_tax_computations`): unique on `(userId, assessmentYear)`. `POST /` **upserts** on that key (re-saving the same year overwrites). Derived columns (`grossTax`, `minimumTax`, `taxAfterMinimum`, `netPayable`, `refundable`, `breakdownJson`) are always recomputed server-side on create/update — never trust client-supplied totals
 - **Endpoints**: `POST /preview` (stateless calc, no save), `GET /`, `POST /` (upsert), `GET /:id`, `PUT /:id` (merge-then-recompute), `DELETE /:id` (hard delete), `GET /:id/pdf`. PDF template: `server/src/templates/income-tax-computation.html`
 - **Server files**: `services/incomeTax.service.ts` (+ `incomeTaxCalc.service.ts`), `validators/incomeTax.validator.ts`, `controllers/incomeTax.controller.ts`, `routes/incomeTax.routes.ts`
-- **Client**: `client/src/services/incomeTax.ts`, single page `client/src/pages/incomeTax/IncomeTaxCalculator.tsx` at route `/income-tax`
+- **Client**: `client/src/services/incomeTax.ts`, pages in `client/src/pages/incomeTax/` — `IncomeTaxCalculator.tsx` (`/income-tax`) and `IncomeTaxHome.tsx` (`/income-tax-home`)
+
+### Onboarding & Account Types (`User.userType`)
+
+The app serves two kinds of users from one account model via **soft separation** — the choice only steers onboarding/home/nav, it never hard-locks access.
+
+- **`User.userType`** (`company | income_tax`, default `company`, `@map("user_type")`): set at signup. Register validator accepts it (optional); `register`, `login`, and `GET /auth/me` all serialize it back. **Adding this column is why a `prisma db push` is required on deploy** (see Deployment) — skipping it 502s `/auth/register` and `/auth/me`
+- **Derived `appMode`** (client-side, not stored): `appMode = userType === 'income_tax' && companies.length === 0 ? 'income_tax' : 'company'`. The moment an income-tax user adds a company they flip to company mode and gain the full VAT app **plus** the calculator. A `company` user always sees `/income-tax` in their nav. So `userType` only governs the **zero-company onboarding + default home** — it removes nothing
+- **Entry fork**: landing-page "Get Started" → `client/src/pages/GetStarted.tsx` (`/get-started`) → `/register?type=company|income_tax`. The register form (`Register.tsx`) also has an inline Segmented selector so the type is switchable there; it drives the post-signup redirect (income_tax → `/income-tax-home`, company → `/welcome`)
+- **Routing guards** (`App.tsx`): `FirstRunGate` sends a brand-new *company* user with no company to `/welcome`, but **bypasses that for income-tax users** (they have no company by design). `CompanyOnly` wraps every company-scoped route and redirects income-tax-mode users to `/income-tax-home` (prevents `activeCompany === null` crashes on VAT screens). `/income-tax`, `/income-tax-home`, `/settings` sit outside `CompanyOnly` (both modes)
+- **Layout** (`AppLayout.tsx`): in income-tax mode it swaps `navGroups` for a minimal `incomeTaxNavGroups` (Income Tax + Add-a-Company + Settings), the header chip shows the user's name instead of the company, and the bottom CTA becomes "Calculate Tax" instead of "New Invoice"
 
 ### VDS Module (`/api/v1/vds`)
 

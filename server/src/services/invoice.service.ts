@@ -142,7 +142,7 @@ export async function createInvoice(companyId: bigint, userId: bigint, input: Cr
 export async function getInvoiceById(companyId: bigint, invoiceId: bigint) {
   const invoice = await prisma.invoice.findFirst({
     where: { id: invoiceId, companyId },
-    include: { items: { include: { product: true } }, customer: true, payments: true },
+    include: { items: { include: { product: true } }, customer: true, payments: { include: { paymentAccount: true } } },
   });
   if (!invoice) return null;
   const serialized = serializeInvoice(invoice);
@@ -152,6 +152,8 @@ export async function getInvoiceById(companyId: bigint, invoiceId: bigint) {
       id: p.id.toString(),
       companyId: p.companyId.toString(),
       invoiceId: p.invoiceId.toString(),
+      paymentAccountId: p.paymentAccountId ? p.paymentAccountId.toString() : null,
+      paymentAccountName: p.paymentAccount?.name ?? null,
       amount: Number(p.amount),
       paymentDate: p.paymentDate,
       paymentMethod: p.paymentMethod,

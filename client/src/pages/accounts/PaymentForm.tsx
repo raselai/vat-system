@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, Form, InputNumber, DatePicker, Select, Input, message } from 'antd';
 import dayjs from 'dayjs';
-import { createPayment } from '../../services/payment';
+import { createPayment, listPaymentAccounts } from '../../services/payment';
+import { PaymentAccount } from '../../types';
 import { D, GradBtn, TonalBtn } from '../../styles/design';
 
 interface PaymentFormProps {
@@ -18,9 +19,27 @@ const METHOD_OPTIONS = [
   { value: 'mobile_banking', label: 'Mobile Banking' },
 ];
 
+const ACCOUNT_TYPE_TO_METHOD: Record<PaymentAccount['type'], string> = {
+  cash: 'cash',
+  bank: 'bank_transfer',
+  mobile_banking: 'mobile_banking',
+};
+
 export default function PaymentForm({ invoiceId, outstanding, onSuccess, onClose }: PaymentFormProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
+
+  useEffect(() => {
+    listPaymentAccounts().then(setAccounts).catch(() => {});
+  }, []);
+
+  const handleAccountChange = (accountId: string | undefined) => {
+    const account = accounts.find(a => a.id === accountId);
+    if (account) {
+      form.setFieldValue('paymentMethod', ACCOUNT_TYPE_TO_METHOD[account.type]);
+    }
+  };
 
   const handleSubmit = async () => {
     let values: any;
@@ -36,6 +55,7 @@ export default function PaymentForm({ invoiceId, outstanding, onSuccess, onClose
         amount: values.amount,
         paymentDate: values.paymentDate.format('YYYY-MM-DD'),
         paymentMethod: values.paymentMethod,
+        paymentAccountId: values.paymentAccountId || undefined,
         reference: values.reference || undefined,
         notes: values.notes || undefined,
       });
@@ -76,6 +96,19 @@ export default function PaymentForm({ invoiceId, outstanding, onSuccess, onClose
         <Form.Item name="paymentDate" label="Payment Date" rules={[{ required: true }]}>
           <DatePicker style={{ width: '100%' }} />
         </Form.Item>
+        {accounts.length > 0 && (
+          <Form.Item name="paymentAccountId" label="Pay Into / From Account">
+            <Select
+              allowClear
+              placeholder="Optional — select a money account"
+              onChange={handleAccountChange}
+              options={accounts.map(a => ({
+                value: a.id,
+                label: a.bankName ? `${a.name} — ${a.bankName}` : a.name,
+              }))}
+            />
+          </Form.Item>
+        )}
         <Form.Item name="paymentMethod" label="Payment Method" rules={[{ required: true }]}>
           <Select options={METHOD_OPTIONS} />
         </Form.Item>
