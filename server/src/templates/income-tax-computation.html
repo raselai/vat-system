@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&family=Inter:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', 'Noto Sans Bengali', sans-serif; font-size: 11px; padding: 20px; color: #1f2937; }
+    .header { text-align: center; margin-bottom: 18px; border-bottom: 2px solid #001d52; padding-bottom: 10px; }
+    .header img { height: 56px; margin-bottom: 6px; }
+    .header h1 { font-size: 16px; font-weight: 700; color: #001d52; }
+    .header h2 { font-size: 12px; font-weight: 600; margin-top: 3px; color: #006a4e; }
+    .header p { font-size: 10px; color: #6b7280; margin-top: 2px; }
+    .section { margin-bottom: 16px; }
+    .section-title { font-weight: 700; font-size: 12px; margin-bottom: 8px; color: #001d52; border-bottom: 1px solid #c4c6cf; padding-bottom: 4px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .info-row { display: flex; margin-bottom: 4px; }
+    .info-label { font-weight: 600; min-width: 150px; color: #4b5563; }
+    .info-value { flex: 1; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; font-size: 10px; }
+    th { background: #eef1f6; font-weight: 700; color: #001d52; }
+    td.number, th.number { text-align: right; }
+    .totals .row { display: flex; justify-content: flex-end; gap: 20px; margin-bottom: 5px; }
+    .totals .label { font-weight: 600; min-width: 280px; text-align: right; color: #4b5563; }
+    .totals .value { min-width: 130px; text-align: right; }
+    .highlight { font-weight: 700; font-size: 13px; border-top: 2px solid #001d52; padding-top: 6px; color: #001d52; }
+    .refund { color: #006a4e; }
+    .notice { margin-top: 18px; padding: 8px 10px; border: 1px dashed #9ca3af; font-size: 9px; color: #6b7280; line-height: 1.5; }
+    .footer { margin-top: 44px; display: flex; justify-content: space-between; }
+    .signature { text-align: center; border-top: 1px solid #333; padding-top: 4px; min-width: 180px; font-size: 10px; }
+    .musak-no { font-size: 10px; color: #9ca3af; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="musak-no">Individual Income Tax — Computation Sheet</div>
+  <div class="header">
+    {{#if logoDataUri}}<img src="{{logoDataUri}}" alt="Govt seal">{{/if}}
+    <h1>Income Tax Computation</h1>
+    <h2>আয়কর গণনা পত্র — Assessment Year {{assessmentYear}}</h2>
+    <p>National Board of Revenue (NBR), Bangladesh · Generated {{generatedAt}}</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Taxpayer Information / করদাতার তথ্য</div>
+    <div class="info-grid">
+      <div>
+        <div class="info-row"><span class="info-label">Name / নাম:</span><span class="info-value">{{taxpayerName}}</span></div>
+        <div class="info-row"><span class="info-label">Category / শ্রেণি:</span><span class="info-value">{{categoryLabel}}</span></div>
+      </div>
+      <div>
+        <div class="info-row"><span class="info-label">Assessment Year:</span><span class="info-value">{{assessmentYear}}</span></div>
+        <div class="info-row"><span class="info-label">Status:</span><span class="info-value">{{taxpayerStatusLabel}}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Slab-wise Computation / ধাপভিত্তিক গণনা</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Income Slab / আয়ের ধাপ</th>
+          <th class="number">Amount (Tk)</th>
+          <th class="number">Rate</th>
+          <th class="number">Tax (Tk)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each breakdown}}
+        <tr>
+          <td>{{this.label}}</td>
+          <td class="number">{{formatNumber this.slabAmount}}</td>
+          <td class="number">{{this.rate}}%</td>
+          <td class="number">{{formatNumber this.tax}}</td>
+        </tr>
+        {{/each}}
+        <tr style="font-weight: 700; background: #f9fafb;">
+          <td>Total Taxable Income / মোট করযোগ্য আয়</td>
+          <td class="number">{{formatNumber taxableIncome}}</td>
+          <td class="number"></td>
+          <td class="number">{{formatNumber grossTax}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section totals">
+    <div class="row"><span class="label">Gross tax (slab computation):</span><span class="value">{{formatNumber grossTax}}</span></div>
+    {{#if minimumApplied}}
+    <div class="row"><span class="label">Minimum tax floor applied:</span><span class="value">{{formatNumber minimumTax}}</span></div>
+    {{/if}}
+    <div class="row"><span class="label">Tax payable (after minimum tax):</span><span class="value">{{formatNumber taxAfterMinimum}}</span></div>
+    <div class="row"><span class="label">Less: advance tax / TDS paid:</span><span class="value">({{formatNumber advanceTaxPaid}})</span></div>
+    {{#if refundable}}
+    <div class="row highlight refund"><span class="label">Refundable / ফেরতযোগ্য:</span><span class="value">{{formatNumber refundable}}</span></div>
+    {{else}}
+    <div class="row highlight"><span class="label">Net tax payable / প্রদেয় কর:</span><span class="value">{{formatNumber netPayable}}</span></div>
+    {{/if}}
+  </div>
+
+  <div class="notice">
+    This is a computation worksheet generated for the taxpayer's own reference under the slabs announced for FY 2025–26 (Assessment Year 2026–27). It is not a return filed with the NBR. Figures are based on the taxable income and advance tax entered by the taxpayer; investment rebate and other adjustments are not included in this version. Verify with a tax adviser before filing.
+  </div>
+
+  <div class="footer">
+    <div class="signature">Taxpayer's Signature / করদাতার স্বাক্ষর</div>
+    <div class="signature">Date / তারিখ</div>
+  </div>
+</body>
+</html>

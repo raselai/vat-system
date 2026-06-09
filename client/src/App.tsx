@@ -38,6 +38,7 @@ import DeductionList from './pages/tds/DeductionList';
 import DeductionForm from './pages/tds/DeductionForm';
 import TdsPaymentList from './pages/tds/TdsPaymentList';
 import TdsPaymentForm from './pages/tds/TdsPaymentForm';
+import IncomeTaxCalculator from './pages/incomeTax/IncomeTaxCalculator';
 
 // Authenticated shell: requires login + company context for all nested routes.
 function AuthedShell() {
@@ -105,6 +106,7 @@ function App() {
               <Route path="/tds/deductions/new" element={<DeductionForm />} />
               <Route path="/tds/payments" element={<TdsPaymentList />} />
               <Route path="/tds/payments/new" element={<TdsPaymentForm />} />
+              <Route path="/income-tax" element={<IncomeTaxCalculator />} />
               <Route path="/audit-logs" element={<AuditLogPage />} />
               <Route path="/import-export" element={<ImportExportPage />} />
               <Route path="/reports" element={<ReportsPage />} />

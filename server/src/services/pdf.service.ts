@@ -142,6 +142,37 @@ export async function generateMusak66Pdf(certData: any): Promise<Buffer> {
   });
 }
 
+export async function generateIncomeTaxComputationPdf(data: {
+  taxpayerName: string;
+  assessmentYear: string;
+  categoryLabel: string;
+  taxpayerStatusLabel: string;
+  taxableIncome: number;
+  breakdown: { label: string; slabAmount: number; rate: number; tax: number }[];
+  grossTax: number;
+  minimumTax: number;
+  taxAfterMinimum: number;
+  advanceTaxPaid: number;
+  netPayable: number;
+  refundable: number;
+}): Promise<Buffer> {
+  const templateSource = readTemplate('income-tax-computation.html');
+  const template = Handlebars.compile(templateSource);
+
+  const html = template({
+    logoDataUri: readLogoAsBase64(),
+    generatedAt: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+    minimumApplied: data.minimumTax > 0 && data.taxAfterMinimum === data.minimumTax && data.grossTax < data.minimumTax,
+    ...data,
+  });
+
+  return renderPdf(html, {
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
+  });
+}
+
 export async function generateMusak67Pdf(registerData: any): Promise<Buffer> {
   const templateSource = readTemplate('musak67.html');
   const template = Handlebars.compile(templateSource);

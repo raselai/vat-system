@@ -440,3 +440,42 @@ export interface TdsSummary {
   pendingDeposit: number;
   paymentCount: number;
 }
+
+export type IncomeTaxCategory = 'general' | 'women_senior' | 'third_gender_disabled' | 'freedom_fighter';
+export type IncomeTaxpayerStatus = 'existing' | 'new';
+
+export interface IncomeTaxBreakdownRow {
+  label: string;
+  slabAmount: number;
+  rate: number;
+  tax: number;
+}
+
+export interface IncomeTaxResult {
+  grossTax: number;
+  applicableMinimum: number;
+  taxAfterMinimum: number;
+  netPayable: number;
+  refundable: number;
+  breakdown: IncomeTaxBreakdownRow[];
+}
+
+export interface IncomeTaxComputation {
+  id: string;
+  userId: string;
+  assessmentYear: string;
+  category: IncomeTaxCategory;
+  taxpayerStatus: IncomeTaxpayerStatus;
+  subjectToMin: boolean;
+  taxableIncome: number;
+  advanceTaxPaid: number;
+  grossTax: number;
+  minimumTax: number;
+  taxAfterMinimum: number;
+  netPayable: number;
+  refundable: number;
+  breakdownJson: IncomeTaxBreakdownRow[];
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

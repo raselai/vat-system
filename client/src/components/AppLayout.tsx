@@ -51,6 +51,7 @@ const navGroups: NavGroup[] = [
       { key: '/returns', icon: 'assignment_turned_in', label: 'nav.returns', jargon: 'Return · Musak 9.1' },
       { key: '/tds/deductions', icon: 'percent', label: 'nav.tdsDeductions', jargon: 'TDS' },
       { key: '/tds/payments', icon: 'receipt', label: 'nav.tdsPayments', jargon: 'TDS' },
+      { key: '/income-tax', icon: 'account_balance_wallet', label: 'nav.incomeTax', jargon: 'Income Tax · Individual' },
     ],
   },
   {

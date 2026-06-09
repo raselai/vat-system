@@ -14,6 +14,7 @@ import backupRoutes from './routes/backup.routes';
 import reportsRoutes from './routes/reports.routes';
 import accountsRoutes from './routes/accounts.routes';
 import tdsRoutes from './routes/tds.routes';
+import incomeTaxRoutes from './routes/incomeTax.routes';
 
 const app = express();
 
@@ -49,6 +50,9 @@ app.use('/api/v1/vds', vdsRoutes);
 app.use('/api/v1/registers', registerRoutes);
 app.use('/api/v1/returns', returnRoutes);
 app.use('/api/v1/audit-logs', auditLogRoutes);
+// Personal, user-scoped — must be registered before the bare /api/v1 importExport
+// router, whose companyScope middleware would otherwise 403 it for lacking x-company-id.
+app.use('/api/v1/income-tax', incomeTaxRoutes);
 app.use('/api/v1', importExportRoutes);
 app.use('/api/v1/backup', backupRoutes);
 app.use('/api/v1/reports', reportsRoutes);
