@@ -2,19 +2,29 @@ import { useEffect, useState } from 'react';
 import { Table, message, Popconfirm } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { getStockSummary } from '../../services/stock';
 import { Product } from '../../types';
 import { D, PageHeader, GradBtn, TonalBtn, TableWrap, StatusChip } from '../../styles/design';
+import { useCompany } from '../../contexts/CompanyContext';
+
+const fmtQty = (v: number) => v.toLocaleString('en-IN', { maximumFractionDigits: 3 });
 
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [stockMap, setStockMap] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { isAdmin } = useCompany();
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/products');
+      const [{ data }, stock] = await Promise.all([
+        api.get('/products'),
+        getStockSummary().catch(() => []),
+      ]);
       setProducts(data.data);
+      setStockMap(new Map(stock.map((s) => [s.productId, s.currentStock])));
     } catch {
       message.error('Failed to load products');
     } finally {
@@ -88,10 +98,27 @@ export default function ProductList() {
       ),
     },
     {
+      title: 'Stock',
+      key: 'stock',
+      render: (_: unknown, record: Product) => {
+        if (record.type !== 'product') return <span style={{ color: D.onSurfaceVar }}>—</span>;
+        const qty = stockMap.get(record.id);
+        if (qty === undefined) return <span style={{ color: D.onSurfaceVar }}>—</span>;
+        return (
+          <span style={{ fontFamily: D.manrope, fontWeight: 700, color: qty < 0 ? D.red : D.tertiary }}>
+            {fmtQty(qty)} <span style={{ fontWeight: 500, fontSize: 11, color: D.onSurfaceVar }}>{record.unit}</span>
+          </span>
+        );
+      },
+    },
+    {
       title: '',
       key: 'actions',
       render: (_: unknown, record: Product) => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          {record.type === 'product' && (
+            <TonalBtn icon="inventory_2" size="sm" onClick={() => navigate(`/products/${record.id}/stock`)}>Stock</TonalBtn>
+          )}
           <TonalBtn icon="edit" size="sm" onClick={() => navigate(`/products/${record.id}/edit`)}>Edit</TonalBtn>
           <Popconfirm title="Deactivate this product?" onConfirm={() => handleDelete(record.id)}>
             <TonalBtn icon="delete" size="sm" danger>Deactivate</TonalBtn>
@@ -106,7 +133,14 @@ export default function ProductList() {
       <PageHeader
         eyebrow="Inventory"
         title="Products & Services"
-        action={<GradBtn icon="add" onClick={() => navigate('/products/new')}>Add Product</GradBtn>}
+        action={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {isAdmin && (
+              <TonalBtn icon="published_with_changes" onClick={() => navigate('/products/bulk-rates')}>Update Rates</TonalBtn>
+            )}
+            <GradBtn icon="add" onClick={() => navigate('/products/new')}>Add Product</GradBtn>
+          </div>
+        }
       />
       <TableWrap>
         <Table columns={columns} dataSource={products} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />

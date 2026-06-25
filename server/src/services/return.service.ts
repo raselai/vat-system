@@ -22,6 +22,7 @@ function buildMusak91Json(data: {
   carryForward: number;
   increasingAdjustment: number;
   decreasingAdjustment: number;
+  openingBalance: number;
   netPayable: number;
 }): Record<string, number> {
   return {
@@ -34,6 +35,7 @@ function buildMusak91Json(data: {
     section_7_carry_forward: data.carryForward,
     section_8_increasing_adjustment: data.increasingAdjustment,
     section_9_decreasing_adjustment: data.decreasingAdjustment,
+    opening_balance: data.openingBalance,
     section_10_net_payable: data.netPayable,
     // Sections 11–24: placeholders for future NBR extension
     section_11_import_vat: 0,
@@ -72,6 +74,15 @@ export async function generateReturn(
   if (existing && (existing.status === 'reviewed' || existing.status === 'submitted' || existing.status === 'locked')) {
     throw new Error(`Cannot regenerate a ${existing.status} return`);
   }
+
+  // Opening VAT balance applies to the company's designated opening month only.
+  // Sourced from company config (single source of truth) so it re-derives on every regenerate.
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { openingVatBalance: true, openingVatMonth: true },
+  });
+  const openingBalance =
+    company?.openingVatMonth === taxMonth ? round2(Number(company.openingVatBalance)) : 0;
 
   // Aggregate sales invoices
   const salesAgg = await prisma.invoice.aggregate({
@@ -115,13 +126,13 @@ export async function generateReturn(
   const notes = existing?.notes ?? null;
 
   const netPayable = round2(
-    outputVat + sdPayable - inputVat - vdsCredit - carryForward + increasingAdjustment - decreasingAdjustment,
+    outputVat + sdPayable - inputVat - vdsCredit - carryForward + increasingAdjustment - decreasingAdjustment + openingBalance,
   );
 
   const musak91Json = buildMusak91Json({
     totalSalesValue, outputVat, sdPayable,
     totalPurchaseValue, inputVat, vdsCredit,
-    carryForward, increasingAdjustment, decreasingAdjustment, netPayable,
+    carryForward, increasingAdjustment, decreasingAdjustment, openingBalance, netPayable,
   });
 
   const fields = {
@@ -137,6 +148,7 @@ export async function generateReturn(
     carryForward: new Decimal(carryForward),
     increasingAdjustment: new Decimal(increasingAdjustment),
     decreasingAdjustment: new Decimal(decreasingAdjustment),
+    openingBalance: new Decimal(openingBalance),
     notes,
     netPayable: new Decimal(netPayable),
     musak91Json,
@@ -176,11 +188,13 @@ export async function updateReturn(
   const carryForward = input.carryForward ?? round2(Number(ret.carryForward));
   const increasingAdjustment = input.increasingAdjustment ?? round2(Number(ret.increasingAdjustment));
   const decreasingAdjustment = input.decreasingAdjustment ?? round2(Number(ret.decreasingAdjustment));
+  // openingBalance is company-config-driven (set at generate); never edited here.
+  const openingBalance = round2(Number(ret.openingBalance));
 
   const netPayable = round2(
     Number(ret.outputVat) + Number(ret.sdPayable)
     - Number(ret.inputVat) - Number(ret.vdsCredit)
-    - carryForward + increasingAdjustment - decreasingAdjustment,
+    - carryForward + increasingAdjustment - decreasingAdjustment + openingBalance,
   );
 
   const musak91Json = buildMusak91Json({
@@ -193,6 +207,7 @@ export async function updateReturn(
     carryForward,
     increasingAdjustment,
     decreasingAdjustment,
+    openingBalance,
     netPayable,
   });
 
@@ -252,6 +267,7 @@ export function serializeReturn(ret: VatReturn) {
     carryForward: Number(ret.carryForward),
     increasingAdjustment: Number(ret.increasingAdjustment),
     decreasingAdjustment: Number(ret.decreasingAdjustment),
+    openingBalance: Number(ret.openingBalance),
     netPayable: Number(ret.netPayable),
   };
 }

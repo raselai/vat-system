@@ -10,6 +10,12 @@ Handlebars.registerHelper('formatNumber', (value: number) => {
 
 Handlebars.registerHelper('add', (a: number, b: number) => a + b);
 
+// Quantities are DECIMAL(14,3) — show up to 3 decimals, trimming trailing zeros.
+Handlebars.registerHelper('formatQty', (value: number) => {
+  if (value === null || value === undefined) return '0';
+  return Number(value).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+});
+
 function readTemplate(fileName: string): string {
   const candidates = [
     path.join(__dirname, '../templates', fileName),
@@ -200,6 +206,63 @@ export async function generateMusak67Pdf(registerData: any): Promise<Buffer> {
   });
 }
 
+export async function generateMusak61Pdf(data: {
+  companyName: string;
+  companyBin: string;
+  companyAddress: string;
+  product: { name: string; unit: string; openingStock: number };
+  entries: Array<{
+    date: string;
+    type: 'opening' | 'in' | 'out';
+    source: 'opening' | 'invoice' | 'adjustment';
+    invoiceType: 'sales' | 'purchase' | null;
+    reference: string;
+    qtyIn: number;
+    qtyOut: number;
+    balance: number;
+  }>;
+  currentStock: number;
+}): Promise<Buffer> {
+  const templateSource = readTemplate('musak61.html');
+  const template = Handlebars.compile(templateSource);
+
+  const typeLabel = (e: { source: string; invoiceType: string | null }) => {
+    if (e.source === 'opening') return 'প্রারম্ভিক / Opening';
+    if (e.source === 'adjustment') return 'সমন্বয় / Adjustment';
+    return e.invoiceType === 'purchase' ? 'ক্রয় / Purchase' : 'বিক্রয় / Sale';
+  };
+
+  const entries = data.entries.map((e, i) => ({
+    sl: e.source === 'opening' ? '—' : i,
+    dateLabel: new Date(e.date).toLocaleDateString('en-GB'),
+    typeLabel: typeLabel(e),
+    isOpening: e.source === 'opening',
+    reference: e.reference,
+    qtyIn: e.qtyIn,
+    qtyOut: e.qtyOut,
+    balance: e.balance,
+  }));
+
+  const html = template({
+    logoDataUri: readLogoAsBase64(),
+    companyName: data.companyName,
+    companyBin: data.companyBin,
+    companyAddress: data.companyAddress,
+    productName: data.product.name,
+    unit: data.product.unit,
+    openingStock: data.product.openingStock,
+    entries,
+    currentStock: data.currentStock,
+  });
+
+  return renderPdf(html, {
+    format: 'A4',
+    landscape: true,
+    printBackground: true,
+    margin: { top: '12mm', right: '10mm', bottom: '12mm', left: '10mm' },
+  });
+}
+
 export async function generateMusak91Pdf(returnData: any): Promise<Buffer> {
   const templateSource = readTemplate('musak91.html');
   const template = Handlebars.compile(templateSource);
@@ -220,6 +283,8 @@ export async function generateMusak91Pdf(returnData: any): Promise<Buffer> {
     carryForward: returnData.carryForward,
     increasingAdjustment: returnData.increasingAdjustment,
     decreasingAdjustment: returnData.decreasingAdjustment,
+    openingBalance: returnData.openingBalance,
+    hasOpeningBalance: Number(returnData.openingBalance) !== 0,
     netPayable: returnData.netPayable,
     notes: returnData.notes,
   });

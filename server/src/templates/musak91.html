@@ -80,6 +80,7 @@
         <tr><td>পূর্ববর্তী মাসের ক্রেডিট / Carry Forward</td><td class="number">{{formatNumber carryForward}}</td></tr>
         <tr><td>বর্ধিত সমন্বয় / Increasing Adjustment</td><td class="number">{{formatNumber increasingAdjustment}}</td></tr>
         <tr><td>হ্রাসমান সমন্বয় / Decreasing Adjustment</td><td class="number">{{formatNumber decreasingAdjustment}}</td></tr>
+        {{#if hasOpeningBalance}}<tr><td>প্রারম্ভিক ভ্যাট স্থিতি / Opening VAT Balance</td><td class="number">{{formatNumber openingBalance}}</td></tr>{{/if}}
       </tbody>
     </table>
   </div>

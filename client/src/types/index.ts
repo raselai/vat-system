@@ -30,6 +30,8 @@ export interface Company {
   challanPrefix: string;
   nextChallanNo: number;
   fiscalYearStart: number;
+  openingVatBalance?: number;
+  openingVatMonth?: string | null;
   createdAt: string;
   updatedAt: string;
   role?: string;
@@ -50,9 +52,49 @@ export interface Product {
   truncatedBasePct: number;
   unit: string;
   unitPrice: number;
+  openingStock: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StockRow {
+  productId: string;
+  name: string;
+  unit: string;
+  openingStock: number;
+  purchased: number;
+  sold: number;
+  adjustments: number;
+  currentStock: number;
+}
+
+export interface StockMovement {
+  date: string;
+  type: 'opening' | 'in' | 'out';
+  source: 'opening' | 'invoice' | 'adjustment';
+  invoiceType: 'sales' | 'purchase' | null;
+  reference: string;
+  status: string | null;
+  qtyIn: number;
+  qtyOut: number;
+  balance: number;
+}
+
+export interface StockRegister {
+  product: { id: string; name: string; unit: string; openingStock: number };
+  entries: StockMovement[];
+  currentStock: number;
+}
+
+export interface StockAdjustment {
+  id: string;
+  productId: string;
+  qty: number;
+  reason: string;
+  adjustedAt: string;
+  createdBy: string;
+  createdAt: string;
 }
 
 export interface Customer {
@@ -259,6 +301,7 @@ export interface VatReturn {
   carryForward: number;
   increasingAdjustment: number;
   decreasingAdjustment: number;
+  openingBalance: number;
   notes: string | null;
   netPayable: number;
   musak91Json: Record<string, number>;

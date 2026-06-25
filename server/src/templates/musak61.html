@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans Bengali', sans-serif; font-size: 10px; padding: 20px; color: #333; }
+    .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+    .header img { height: 48px; margin-bottom: 6px; }
+    .header h1 { font-size: 15px; font-weight: 700; }
+    .header h2 { font-size: 12px; font-weight: 600; margin-top: 4px; }
+    .header p { font-size: 9px; color: #666; }
+    .meta { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 10px; }
+    .meta .info-row { margin-bottom: 2px; }
+    .meta .info-label { font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { border: 1px solid #333; padding: 3px 5px; text-align: left; font-size: 9px; }
+    th { background: #f0f0f0; font-weight: 700; text-align: center; white-space: nowrap; }
+    td.number { text-align: right; }
+    td.center { text-align: center; }
+    .opening-row td { background: #fafafa; font-style: italic; }
+    .summary-row td { font-weight: 700; background: #f5f5f5; }
+    .footer { margin-top: 40px; display: flex; justify-content: space-between; }
+    .signature { text-align: center; border-top: 1px solid #333; padding-top: 4px; min-width: 150px; font-size: 9px; }
+    .musak-no { font-size: 9px; color: #999; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="musak-no">মূসক-৬.১ / Musak-6.1</div>
+  <div class="header">
+    {{#if logoDataUri}}<img src="{{logoDataUri}}" alt="logo">{{/if}}
+    <h1>পণ্য মজুদ হিসাবপুস্তক / Stock Register</h1>
+    <h2>{{companyName}}</h2>
+    <p>BIN: {{companyBin}} | {{companyAddress}}</p>
+  </div>
+
+  <div class="meta">
+    <div>
+      <div class="info-row"><span class="info-label">পণ্য / Product:</span> {{productName}}</div>
+      <div class="info-row"><span class="info-label">একক / Unit:</span> {{unit}}</div>
+    </div>
+    <div>
+      <div class="info-row"><span class="info-label">প্রারম্ভিক মজুদ / Opening Stock:</span> {{formatQty openingStock}}</div>
+      <div class="info-row"><span class="info-label">বর্তমান মজুদ / Current Stock:</span> {{formatQty currentStock}} {{unit}}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ক্রম<br>SL</th>
+        <th>তারিখ<br>Date</th>
+        <th>ধরন<br>Type</th>
+        <th>বিবরণ / রেফারেন্স<br>Reference</th>
+        <th>আগমন<br>In</th>
+        <th>নির্গমন<br>Out</th>
+        <th>মজুদ স্থিতি<br>Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each entries}}
+      <tr class="{{#if this.isOpening}}opening-row{{/if}}">
+        <td class="center">{{this.sl}}</td>
+        <td>{{this.dateLabel}}</td>
+        <td class="center">{{this.typeLabel}}</td>
+        <td>{{this.reference}}</td>
+        <td class="number">{{#if this.qtyIn}}{{formatQty this.qtyIn}}{{else}}—{{/if}}</td>
+        <td class="number">{{#if this.qtyOut}}{{formatQty this.qtyOut}}{{else}}—{{/if}}</td>
+        <td class="number">{{formatQty this.balance}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+    <tfoot>
+      <tr class="summary-row">
+        <td colspan="6" style="text-align:right">বর্তমান মজুদ / Current Stock:</td>
+        <td class="number">{{formatQty currentStock}}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="footer">
+    <div class="signature">প্রস্তুতকারীর স্বাক্ষর<br>Prepared By</div>
+    <div class="signature">অনুমোদনকারীর স্বাক্ষর<br>Approved By</div>
+  </div>
+</body>
+</html>

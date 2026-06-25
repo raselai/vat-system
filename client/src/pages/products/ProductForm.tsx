@@ -48,7 +48,7 @@ export default function ProductForm() {
           form={form}
           layout="vertical"
           onFinish={onFinish}
-          initialValues={{ type: 'product', vatRate: 15, sdRate: 0, specificDutyAmount: 0, truncatedBasePct: 100, unit: 'pcs', unitPrice: 0 }}
+          initialValues={{ type: 'product', vatRate: 15, sdRate: 0, specificDutyAmount: 0, truncatedBasePct: 100, unit: 'pcs', unitPrice: 0, openingStock: 0 }}
         >
           <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr]" style={{ gap: 16 }}>
             <Form.Item name="name" label="Product / Service Name" rules={[{ required: true, min: 2 }]}>
@@ -96,12 +96,19 @@ export default function ProductForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
             <Form.Item name="unit" label="Unit of Measure">
               <Input placeholder="pcs, kg, ltr..." />
             </Form.Item>
             <Form.Item name="unitPrice" label="Default Unit Price (৳)">
               <InputNumber min={0} style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item
+              name="openingStock"
+              label="Opening Stock"
+              tooltip="Quantity already on hand before you start using this app. Purchases add to it, sales subtract."
+            >
+              <InputNumber min={0} step={1} style={{ width: '100%' }} />
             </Form.Item>
           </div>
 

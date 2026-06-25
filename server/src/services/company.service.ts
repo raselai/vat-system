@@ -1,10 +1,12 @@
 import prisma from '../utils/prisma';
+import { Decimal } from '@prisma/client/runtime/library';
 import { CreateCompanyInput, UpdateCompanyInput } from '../validators/company.validator';
 
 function serializeCompany(company: any) {
   return {
     ...company,
     id: company.id.toString(),
+    openingVatBalance: company.openingVatBalance != null ? Number(company.openingVatBalance) : 0,
   };
 }
 
@@ -55,9 +57,11 @@ export async function getCompanyById(companyId: bigint) {
 }
 
 export async function updateCompany(companyId: bigint, input: UpdateCompanyInput) {
+  const data: any = { ...input };
+  if (input.openingVatBalance !== undefined) data.openingVatBalance = new Decimal(input.openingVatBalance);
   const company = await prisma.company.update({
     where: { id: companyId },
-    data: input,
+    data,
   });
   return serializeCompany(company);
 }

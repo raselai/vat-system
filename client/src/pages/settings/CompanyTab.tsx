@@ -1,30 +1,56 @@
 import { useState, useEffect } from 'react';
-import { Form, Input, InputNumber, message } from 'antd';
+import { Form, Input, InputNumber, Select, DatePicker, message } from 'antd';
+import dayjs from 'dayjs';
 import { useCompany } from '../../contexts/CompanyContext';
 import api from '../../services/api';
 import { D, Icon, GradBtn } from '../../styles/design';
+
+type OpeningDir = 'none' | 'payable' | 'credit';
 
 export default function CompanyTab() {
   const { activeCompany, setActiveCompany } = useCompany();
   const [loading, setLoading] = useState(false);
   const [displayTin, setDisplayTin] = useState<string | null>(null);
   const [form] = Form.useForm();
+  const openingDir: OpeningDir = Form.useWatch('openingVatDirection', form) ?? 'none';
 
   useEffect(() => {
     if (!activeCompany) return;
     api.get(`/companies/${activeCompany.id}`)
       .then(({ data }) => {
-        form.setFieldsValue(data.data);
+        const bal = Number(data.data.openingVatBalance ?? 0);
+        form.setFieldsValue({
+          ...data.data,
+          openingVatDirection: bal > 0 ? 'payable' : bal < 0 ? 'credit' : 'none',
+          openingVatAmount: Math.abs(bal),
+          openingVatMonth: data.data.openingVatMonth ? dayjs(data.data.openingVatMonth, 'YYYY-MM') : null,
+        });
         setDisplayTin(data.data.tin ?? null);
       })
       .catch(() => message.error('Failed to load company details'));
   }, [activeCompany?.id, form]);
 
-  const onFinish = async (values: { name: string; address: string; challanPrefix: string; fiscalYearStart: number; tin?: string }) => {
+  const onFinish = async (values: any) => {
     if (!activeCompany) return;
     setLoading(true);
     try {
-      const { data } = await api.put(`/companies/${activeCompany.id}`, values);
+      const dir: OpeningDir = values.openingVatDirection ?? 'none';
+      const amount = values.openingVatAmount ?? 0;
+      const openingVatBalance = dir === 'payable' ? amount : dir === 'credit' ? -amount : 0;
+      const openingVatMonth = dir === 'none'
+        ? null
+        : (values.openingVatMonth ? dayjs(values.openingVatMonth).format('YYYY-MM') : null);
+
+      const payload = {
+        name: values.name,
+        address: values.address,
+        tin: values.tin || undefined,
+        challanPrefix: values.challanPrefix,
+        fiscalYearStart: values.fiscalYearStart,
+        openingVatBalance,
+        openingVatMonth,
+      };
+      const { data } = await api.put(`/companies/${activeCompany.id}`, payload);
       setActiveCompany({ ...activeCompany, name: data.data.name });
       setDisplayTin(data.data.tin ?? null);
       message.success('Company updated');
@@ -102,7 +128,48 @@ export default function CompanyTab() {
         <Form.Item name="fiscalYearStart" label="Fiscal Year Start Month (1–12)">
           <InputNumber min={1} max={12} style={{ width: 120 }} />
         </Form.Item>
-        <Form.Item style={{ marginTop: 24 }}>
+
+        {/* Opening VAT balance */}
+        <div style={{ background: D.surfaceLow, borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
+          <p style={{ fontFamily: D.manrope, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: D.onSurfaceVar, marginBottom: 4 }}>
+            Opening VAT Balance
+          </p>
+          <p style={{ fontFamily: D.inter, fontSize: 12.5, color: D.onSurfaceVar, lineHeight: 1.55, marginBottom: 14 }}>
+            Your VAT position before you started using this app. Set it once — it is applied automatically to the return for the tax month you choose below. Leave as “None” if you started from zero.
+          </p>
+
+          <Form.Item name="openingVatDirection" label="Opening position" style={{ marginBottom: openingDir === 'none' ? 0 : 16 }}>
+            <Select
+              options={[
+                { value: 'none', label: 'None — start from zero' },
+                { value: 'payable', label: 'Payable — I owe VAT from before' },
+                { value: 'credit', label: 'Credit / rebate — in my favour' },
+              ]}
+            />
+          </Form.Item>
+
+          {openingDir !== 'none' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Form.Item
+                name="openingVatAmount"
+                label="Amount (৳)"
+                rules={[{ required: true, message: 'Enter the amount' }, { type: 'number', min: 0.01, message: 'Must be greater than 0' }]}
+              >
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0.00" />
+              </Form.Item>
+              <Form.Item
+                name="openingVatMonth"
+                label="Applies to tax month"
+                rules={[{ required: true, message: 'Pick the first month' }]}
+                tooltip="Usually your first month using the app. The opening balance affects this month's return only."
+              >
+                <DatePicker picker="month" format="MMM YYYY" allowClear={false} style={{ width: '100%' }} />
+              </Form.Item>
+            </div>
+          )}
+        </div>
+
+        <Form.Item style={{ marginTop: 8 }}>
           <GradBtn type="submit" icon="save" loading={loading}>
             Save Changes
           </GradBtn>

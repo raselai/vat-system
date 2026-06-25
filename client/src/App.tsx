@@ -16,6 +16,8 @@ import CompanyList from './pages/companies/CompanyList';
 import CompanyForm from './pages/companies/CompanyForm';
 import ProductList from './pages/products/ProductList';
 import ProductForm from './pages/products/ProductForm';
+import ProductStock from './pages/products/ProductStock';
+import BulkRateUpdate from './pages/products/BulkRateUpdate';
 import CustomerList from './pages/customers/CustomerList';
 import CustomerForm from './pages/customers/CustomerForm';
 import InvoiceList from './pages/invoices/InvoiceList';
@@ -116,8 +118,10 @@ function App() {
                 <Route path="/companies/new" element={<CompanyForm />} />
                 <Route path="/companies/:id/edit" element={<CompanyForm />} />
                 <Route path="/products" element={<ProductList />} />
+                <Route path="/products/bulk-rates" element={<BulkRateUpdate />} />
                 <Route path="/products/new" element={<ProductForm />} />
                 <Route path="/products/:id/edit" element={<ProductForm />} />
+                <Route path="/products/:id/stock" element={<ProductStock />} />
                 <Route path="/customers" element={<CustomerList />} />
                 <Route path="/customers/new" element={<CustomerForm />} />
                 <Route path="/customers/:id/edit" element={<CustomerForm />} />

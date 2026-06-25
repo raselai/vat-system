@@ -37,7 +37,9 @@ export default function ReturnDetail() {
   const [liveCarry, setLiveCarry] = useState(0);
   const [liveInc,   setLiveInc]   = useState(0);
   const [liveDec,   setLiveDec]   = useState(0);
-  const liveNet = +(outputVat + sdPayable - inputVat - vdsCredit - liveCarry + liveInc - liveDec).toFixed(2);
+  // Opening VAT balance is company-config-driven and not editable here (+ payable / − credit).
+  const openingBalance = ret?.openingBalance ?? 0;
+  const liveNet = +(outputVat + sdPayable - inputVat - vdsCredit - liveCarry + liveInc - liveDec + openingBalance).toFixed(2);
 
   const fetchReturn = async () => {
     if (!id) return;
@@ -218,6 +220,19 @@ export default function ReturnDetail() {
                 onChange={(v) => setLiveDec(v ?? 0)}
               />
             </Form.Item>
+            {openingBalance !== 0 && (
+              <div style={{ background: D.surfaceLow, borderRadius: 10, padding: '10px 14px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Icon name="flag" size={14} style={{ color: D.onSurfaceVar }} />
+                  <span style={{ fontSize: 13, color: D.onSurfaceVar }}>
+                    Opening VAT Balance <span style={{ fontSize: 11 }}>({openingBalance > 0 ? 'payable' : 'credit'}, from company setup)</span>
+                  </span>
+                </div>
+                <span style={{ fontFamily: D.manrope, fontWeight: 800, color: openingBalance > 0 ? D.red : D.tertiary }}>
+                  {openingBalance > 0 ? '+' : '−'}৳ {fmt(Math.abs(openingBalance))}
+                </span>
+              </div>
+            )}
             <Form.Item label="Notes" name="notes">
               <TextArea rows={3} disabled={!isDraft} maxLength={2000} placeholder="Internal notes about this return..." />
             </Form.Item>

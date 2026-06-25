@@ -173,12 +173,37 @@ The app serves two kinds of users from one account model via **soft separation**
 - `GET /registers/:type/pdf` — landscape Musak 6.7 PDF
 - Totals feed directly into Musak 9.1 monthly return generation
 
+### Stock / Inventory Module (Musak 6.1, mounted under `/api/v1/products`)
+
+Per-product stock-on-hand, a movement ledger (Musak 6.1 / মূসক ৬.১), and manual adjustments. **Routes live on the products router**, not a separate `/stock` prefix.
+
+- **Derived, never stored**: `currentStock = openingStock + Σ(purchase item qty) − Σ(sales item qty) + Σ(adjustments)`, aggregated over `invoice_items` joined to `invoices` filtered `status != 'cancelled'` (same filter as `reports.service.ts`, so stock reconciles with the registers). No mutation hooks in the invoice flow — cancelling/editing an invoice self-corrects; counter can never drift. Only `type = 'product'` carries stock (services show "-")
+- **`Product.openingStock`** (`DECIMAL(14,3)`, default 0): stock on hand before using the app. Accepted by the product create/update validators; only meaningful for products
+- **`stock_adjustments` table**: signed `qty` (+ increase / − decrease), `reason`, `adjustedAt` — for damage / loss / wastage / opening corrections. Summed into the derived total and shown in the ledger
+- **Endpoints** (`product.routes.ts` — `/stock` registered **before** `/:id` so it isn't captured as an id):
+  - `GET /products/stock` — summary row per product (openingStock / purchased / sold / adjustments / currentStock); one catalog read + 3 `groupBy` queries (no N+1)
+  - `GET /products/:id/stock-register` — the Musak 6.1 ledger: synthetic Opening row + chronological in/out movements with running balance
+  - `GET /products/:id/stock-register/pdf` — landscape Musak 6.1 PDF (`musak61.html` + `generateMusak61Pdf` in `pdf.service.ts`; controller fetches company header separately since the register data omits it)
+  - `GET /products/:id/adjustments` (open) and `POST /products/:id/adjustments` (`requireRole('admin')`)
+- **Server files**: `services/stock.service.ts`, handlers appended to `controllers/product.controller.ts`, `validators/product.validator.ts` (`createAdjustmentSchema`), `templates/musak61.html`
+- **Client**: `services/stock.ts`; `pages/products/ProductStock.tsx` (`/products/:id/stock` — KPI strip + running-balance ledger + admin-only Adjust Stock modal + PDF). `ProductList.tsx` shows a live Stock column (fetches `getStockSummary()` alongside `/products`, one extra request) and a per-row Stock action; `ProductForm.tsx` has an `openingStock` field
+- **Quantity helper**: `formatQty` Handlebars helper (up to 3 decimals) registered in `pdf.service.ts`
+
+### Bulk Rate Update (mounted under `/api/v1/products`)
+
+Apply a new VAT and/or SD rate to many products at once — for the annual NBR rate revision.
+
+- `POST /products/bulk-rate-update` (`requireRole('admin')` + `auditLog`; static path registered before `/:id`): body `{ productIds: string[], vatRate?, sdRate? }`, at least one rate required (`bulkRateUpdateSchema`). Single company-scoped `prisma.product.updateMany` (`bulkUpdateRates` in `product.service.ts`); ids not owned by the company are silently ignored
+- **Past invoices are untouched** — invoice lines snapshot their rate at creation, so only future invoices use the new rate
+- **Client**: `pages/products/BulkRateUpdate.tsx` (`/products/bulk-rates`) — checkbox product table with filters (search / current-rate / type), new VAT+SD panel, confirm dialog. Reached via an admin-only **Update Rates** button in `ProductList.tsx`
+
 ### Monthly Return (`/api/v1/returns`)
 
 - **Generation**: `POST /returns/generate` aggregates non-cancelled invoices and finalized deductee VDS certificates for the `taxMonth`, computes net payable, saves as `draft`. Re-generation blocked once status is `reviewed`/`submitted`/`locked`
 - **Status flow**: `draft` → `reviewed` → `submitted` → `locked`. No backward transitions
 - **RBAC**: `generate`, `update`, and all GETs — any role. `review`, `submit`, `lock`, `nbr-export` — `requireRole('admin')`
-- **Net payable**: `outputVat + sdPayable − inputVat − vdsCredit − carryForward + increasingAdj − decreasingAdj`
+- **Net payable**: `outputVat + sdPayable − inputVat − vdsCredit − carryForward + increasingAdj − decreasingAdj + openingBalance`
+- **Opening VAT balance**: company-level starting VAT position carried in before using the app. `Company.openingVatBalance` (`DECIMAL(14,2)`, signed: + payable / − credit) + `Company.openingVatMonth` (`YYYY-MM`). On `generate`, if `taxMonth === company.openingVatMonth` the balance is copied to `VatReturn.openingBalance` (re-derived from company config every regenerate — single source of truth) and folded into net payable. Persisted on the return so `updateReturn` recompute and the Musak 9.1 PDF stay consistent; never edited on the return itself. Set in Settings → Company tab (`CompanyTab.tsx`); shown as a read-only line on `ReturnDetail.tsx` and a conditional row in `musak91.html`
 - **24-section JSON**: `musak91Json` field stores all sections; sections 11–24 are zero placeholders for future NBR schema extension
 - **NBR Filing Guide**: `GET /returns/:id/nbr-export` returns a PDF filing cheat sheet the accountant uses while manually entering data into vat.gov.bd. Contains pre-filing checklist, portal field mapping for Part 3 (Sales) and Part 4 (Purchases), net payable box, and supporting document list. Admin-only. The NBR portal (vat.gov.bd) requires manual data entry — no file upload API exists
 
